@@ -1,0 +1,1 @@
+ALTER TABLE public.tours ADD COLUMN IF NOT EXISTS type text DEFAULT 'Biển', ADD COLUMN IF NOT EXISTS stars integer DEFAULT 3;
