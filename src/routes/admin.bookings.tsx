@@ -30,6 +30,8 @@ type BookingRow = {
   created_at: string;
   user_id: string | null;
   customer_info: Record<string, unknown> | null;
+  updated_at?: string | null;
+  paid_at?: string | null;
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -55,6 +57,7 @@ function AdminBookings() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const callList = useServerFn(adminListBookings);
   const callUpdate = useServerFn(adminUpdateBookingStatus);
@@ -74,12 +77,15 @@ function AdminBookings() {
   useEffect(() => { load(); }, []);
 
   const updateStatus = async (id: string, status: string) => {
+    setUpdatingId(id);
     try {
       await callUpdate({ data: { id, status: status as "pending" | "paid" | "cancelled" | "refunded" } });
       toast.success(`Đã cập nhật trạng thái → ${status}`);
-      setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
+      await load();
     } catch (e) {
       toast.error("Cập nhật thất bại: " + (e as Error).message);
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -183,7 +189,7 @@ function AdminBookings() {
                   </TableCell>
                   <TableCell className="text-xs">{fmtDate(b.created_at)}</TableCell>
                   <TableCell className="text-right">
-                    <Select value={b.status} onValueChange={(v) => updateStatus(b.id, v)}>
+                    <Select value={b.status} onValueChange={(v) => updateStatus(b.id, v)} disabled={updatingId === b.id}>
                       <SelectTrigger className="w-36 h-8 text-xs ml-auto"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="pending">Chờ thanh toán</SelectItem>

@@ -21,7 +21,7 @@ type Props<T> = {
   description?: string;
   fields: FieldDef[];
   initial?: Partial<T>;
-  onSubmit: (values: Record<string, unknown>) => void;
+  onSubmit: (values: Record<string, unknown>) => void | Promise<void>;
   extra?: ReactNode;
 };
 
@@ -57,6 +57,7 @@ function fromFieldString(type: FieldDef["type"], raw: string): AnyVal {
 
 export function CrudFormDialog<T>({ open, onOpenChange, title, description, fields, initial, onSubmit, extra }: Props<T>) {
   const [values, setValues] = useState<Record<string, AnyVal>>({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -157,16 +158,21 @@ export function CrudFormDialog<T>({ open, onOpenChange, title, description, fiel
         {extra}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Hủy</Button>
-          <Button onClick={() => {
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Hủy</Button>
+          <Button disabled={saving} onClick={async () => {
             for (const f of fields) {
               const val = values[f.key];
               const empty = val === "" || val === undefined || val === null;
               if (f.required && empty) return;
             }
-            onSubmit(values);
-            onOpenChange(false);
-          }}>Lưu</Button>
+            setSaving(true);
+            try {
+              await onSubmit(values);
+              onOpenChange(false);
+            } finally {
+              setSaving(false);
+            }
+          }}>{saving ? "Đang lưu..." : "Lưu"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

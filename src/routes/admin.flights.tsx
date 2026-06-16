@@ -27,14 +27,24 @@ function AdminFlights() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Flight | null>(null);
 
-  const handleSubmit = (v: Record<string, unknown>) => {
+  const handleSubmit = async (v: Record<string, unknown>) => {
     const payload: Omit<Flight, "id"> = {
       airline: String(v.airline), from: String(v.from).toUpperCase(), to: String(v.to).toUpperCase(),
       depart: String(v.depart), arrive: String(v.arrive),
       duration: String(v.duration || ""), price: Number(v.price), baggage: String(v.baggage || "7kg"),
     };
-    if (editing) { updateFlight(editing.id, payload); toast.success("Đã cập nhật chuyến bay"); }
-    else { addFlight(payload); toast.success("Đã thêm chuyến bay mới"); }
+    try {
+      if (editing) {
+        await updateFlight(editing.id, payload);
+        toast.success("Đã cập nhật chuyến bay và đồng bộ Supabase");
+      } else {
+        await addFlight(payload);
+        toast.success("Đã thêm chuyến bay mới vào Supabase");
+      }
+    } catch (e) {
+      toast.error((e as Error).message || "Không lưu được chuyến bay");
+      throw e;
+    }
   };
 
   return (
@@ -61,7 +71,14 @@ function AdminFlights() {
                 <TableCell>{f.baggage}</TableCell>
                 <TableCell className="text-right space-x-1">
                   <Button variant="ghost" size="icon" onClick={() => { setEditing(f); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" onClick={() => { deleteFlight(f.id); toast.success("Đã xóa"); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  <Button variant="ghost" size="icon" onClick={async () => {
+                    try {
+                      await deleteFlight(f.id);
+                      toast.success("Đã xóa chuyến bay khỏi Supabase");
+                    } catch (e) {
+                      toast.error((e as Error).message || "Không xóa được chuyến bay");
+                    }
+                  }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                 </TableCell>
               </TableRow>
             ))}

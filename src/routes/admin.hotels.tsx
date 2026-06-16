@@ -9,8 +9,8 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { addHotel, deleteHotel, updateHotel, useAdminVersion } from "@/lib/adminStore";
-import { adminGetHotelDetails } from "@/lib/admin.functions";
+import { addHotel, deleteHotel, refreshHotelsFromDb, updateHotel, useAdminVersion } from "@/lib/adminStore";
+import { adminDeleteRoom, adminGetHotelDetails, adminUpsertRoom } from "@/lib/admin.functions";
 import { formatVND, hotels, type Hotel } from "@/lib/mockData";
 import { listAdminUsers } from "@/lib/users.functions";
 
@@ -30,6 +30,26 @@ const fields: FieldDef[] = [
   { key: "checkOut", label: "Giờ trả phòng", placeholder: "12:00" },
   { key: "description", label: "Mô tả khách sạn", type: "textarea" },
   { key: "roomDescription", label: "Mô tả phòng tiêu chuẩn", type: "textarea" },
+  { key: "amenities", label: "Tiện nghi khách sạn", type: "list", placeholder: "Wifi\nHồ bơi\nNhà hàng" },
+  { key: "requirements", label: "Quy định / yêu cầu", type: "list", placeholder: "Không hút thuốc\nXuất trình CCCD khi nhận phòng" },
+  { key: "basePeople", label: "Số khách mặc định/phòng", type: "number" },
+  { key: "extraFeeRate", label: "Phụ thu khách dư (0.25 = 25%)", type: "number" },
+  { key: "ownerId", label: "ID chủ sở hữu (profiles.id)", placeholder: "UUID của chủ khách sạn" },
+];
+
+const roomFields: FieldDef[] = [
+  { key: "name", label: "Tên phòng", required: true, placeholder: "Standard Double" },
+  { key: "room_type", label: "Loại phòng", placeholder: "standard / deluxe / vip" },
+  { key: "image", label: "Ảnh phòng (URL)", type: "image" },
+  { key: "beds", label: "Số giường", type: "number" },
+  { key: "bed_type", label: "Kiểu giường", placeholder: "1 giường Queen" },
+  { key: "base_people", label: "Số khách tính trong giá", type: "number" },
+  { key: "capacity", label: "Sức chứa tối đa", type: "number" },
+  { key: "base_price", label: "Giá phòng / đêm", type: "number", required: true },
+  { key: "available", label: "Số phòng còn", type: "number" },
+  { key: "owner_email", label: "Email chủ phòng", placeholder: "owner@email.com" },
+  { key: "amenities", label: "Tiện nghi phòng", type: "list", placeholder: "Wifi\nMáy lạnh\nTV" },
+  { key: "description", label: "Mô tả phòng", type: "textarea" },
 ];
 
 type HotelDetails = Awaited<ReturnType<typeof adminGetHotelDetails>>;
@@ -40,10 +60,14 @@ function AdminHotels() {
   const [editing, setEditing] = useState<Hotel | null>(null);
   const fetchUsers = useServerFn(listAdminUsers);
   const fetchDetails = useServerFn(adminGetHotelDetails);
+  const saveRoom = useServerFn(adminUpsertRoom);
+  const removeRoom = useServerFn(adminDeleteRoom);
   const [owners, setOwners] = useState<Map<string, { name: string; email: string }>>(new Map());
   const [detailHotel, setDetailHotel] = useState<Hotel | null>(null);
   const [details, setDetails] = useState<HotelDetails | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [roomOpen, setRoomOpen] = useState(false);
+  const [editingRoom, setEditingRoom] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     fetchUsers().then((list) => {
@@ -70,23 +94,69 @@ function AdminHotels() {
 
 
 
-  const handleSubmit = (v: Record<string, unknown>) => {
+  const handleSubmit = async (v: Record<string, unknown>) => {
     const payload: Partial<Hotel> = {
-      name: String(v.name), city: String(v.city), address: String(v.address),
+      name: String(v.name), city: String(v.city), address: String(v.address || v.city),
       image: String(v.image), price: Number(v.price), stars: Number(v.stars) || 3,
       rating: Number(v.rating) || 4.5,
       checkIn: String(v.checkIn || "14:00"), checkOut: String(v.checkOut || "12:00"),
       description: String(v.description ?? ""),
       roomDescription: String(v.roomDescription ?? ""),
       gallery: (Array.isArray(v.gallery) ? v.gallery : editing?.gallery ?? []) as string[],
-      amenities: editing?.amenities ?? ["Wifi", "Hồ bơi", "Nhà hàng"],
-      requirements: editing?.requirements,
-      basePeople: editing?.basePeople ?? 2,
-      extraFeeRate: editing?.extraFeeRate ?? 0.25,
+      amenities: (Array.isArray(v.amenities) ? v.amenities : editing?.amenities ?? ["Wifi", "Hồ bơi", "Nhà hàng"]) as string[],
+      requirements: (Array.isArray(v.requirements) ? v.requirements : editing?.requirements ?? []) as string[],
+      basePeople: Number(v.basePeople) || editing?.basePeople || 2,
+      extraFeeRate: Number(v.extraFeeRate) || editing?.extraFeeRate || 0.25,
+      ownerId: v.ownerId ? String(v.ownerId).trim() : editing?.ownerId,
       rooms: editing?.rooms,
     };
-    if (editing) { updateHotel(editing.id, payload); toast.success("Đã cập nhật khách sạn"); }
-    else { addHotel(payload as Omit<Hotel, "id">); toast.success("Đã thêm khách sạn mới"); }
+    try {
+      if (editing) {
+        await updateHotel(editing.id, payload);
+        toast.success("Đã cập nhật khách sạn và đồng bộ Supabase");
+      } else {
+        await addHotel(payload as Omit<Hotel, "id">);
+        toast.success("Đã thêm khách sạn mới vào Supabase");
+      }
+    } catch (e) {
+      toast.error((e as Error).message || "Không lưu được khách sạn");
+      throw e;
+    }
+  };
+
+  const handleRoomSubmit = async (v: Record<string, unknown>) => {
+    if (!detailHotel) return;
+    const roomType = String(v.room_type || editingRoom?.room_type || "standard").toLowerCase();
+    const capacity = Number(v.capacity || v.max_people || 2);
+    const basePeople = Number(v.base_people || 2);
+    const basePrice = Number(v.base_price || 0);
+    const values = {
+      name: String(v.name),
+      room_type: roomType,
+      vip: roomType === "vip",
+      image: v.image ? String(v.image) : null,
+      beds: Number(v.beds || 1),
+      bed_type: String(v.bed_type || ""),
+      base_people: basePeople,
+      max_people: capacity,
+      capacity,
+      base_price: basePrice,
+      price_multiplier: detailHotel.price > 0 && basePrice > 0 ? basePrice / detailHotel.price : 1,
+      available: Number(v.available || 0),
+      owner_email: v.owner_email ? String(v.owner_email) : null,
+      amenities: Array.isArray(v.amenities) ? v.amenities : [],
+      description: String(v.description ?? ""),
+    };
+    try {
+      await saveRoom({ data: { hotelId: detailHotel.id, roomId: editingRoom?.id ? String(editingRoom.id) : null, values } });
+      await refreshHotelsFromDb();
+      const res = await fetchDetails({ data: { hotelId: detailHotel.id } });
+      setDetails(res);
+      toast.success(editingRoom ? "Đã cập nhật phòng" : "Đã thêm phòng");
+    } catch (e) {
+      toast.error((e as Error).message || "Không lưu được phòng");
+      throw e;
+    }
   };
 
   return (
@@ -129,7 +199,14 @@ function AdminHotels() {
                 <TableCell className="text-right space-x-1">
                   <Button variant="ghost" size="icon" onClick={() => openDetails(h)} title="Xem chi tiết"><Eye className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => { setEditing(h); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" onClick={() => { deleteHotel(h.id); toast.success("Đã xóa"); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  <Button variant="ghost" size="icon" onClick={async () => {
+                    try {
+                      await deleteHotel(h.id);
+                      toast.success("Đã xóa khách sạn khỏi Supabase");
+                    } catch (e) {
+                      toast.error((e as Error).message || "Không xóa được khách sạn");
+                    }
+                  }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                 </TableCell>
               </TableRow>
               );
@@ -175,7 +252,12 @@ function AdminHotels() {
               </div>
 
               <div>
-                <h3 className="font-semibold mb-2">Danh sách phòng ({details.rooms.length})</h3>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <h3 className="font-semibold">Danh sách phòng ({details.rooms.length})</h3>
+                  <Button size="sm" onClick={() => { setEditingRoom(null); setRoomOpen(true); }}>
+                    <Plus className="h-4 w-4 mr-1" />Thêm phòng
+                  </Button>
+                </div>
                 {details.rooms.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Chưa có phòng nào trong cơ sở dữ liệu.</p>
                 ) : (
@@ -183,19 +265,38 @@ function AdminHotels() {
                     <TableHeader><TableRow>
                       <TableHead>Tên phòng</TableHead><TableHead>Giường</TableHead>
                       <TableHead>Sức chứa</TableHead><TableHead>Giá</TableHead>
-                      <TableHead>Còn lại</TableHead><TableHead>Loại</TableHead>
+                      <TableHead>Còn lại</TableHead><TableHead>Loại</TableHead><TableHead>Owner email</TableHead><TableHead className="text-right">Hành động</TableHead>
                     </TableRow></TableHeader>
                     <TableBody>
-                      {details.rooms.map((r) => (
-                        <TableRow key={String(r.id)}>
-                          <TableCell className="font-medium">{String(r.name)}</TableCell>
-                          <TableCell>{Number(r.beds)}</TableCell>
-                          <TableCell>{Number(r.base_people)}-{Number(r.max_people)}</TableCell>
-                          <TableCell>{formatVND(Number(r.base_price))}</TableCell>
-                          <TableCell><Badge variant={Number(r.available) > 0 ? "default" : "destructive"}>{Number(r.available ?? 0)}</Badge></TableCell>
-                          <TableCell>{r.vip ? "VIP" : "Thường"}</TableCell>
-                        </TableRow>
-                      ))}
+                      {details.rooms.map((r) => {
+                        const roomType = String(r.room_type ?? (r.vip ? "vip" : "standard"));
+                        const capacity = Number(r.capacity ?? r.max_people ?? 0);
+                        return (
+                          <TableRow key={String(r.id)}>
+                            <TableCell className="font-medium">{String(r.name)}</TableCell>
+                            <TableCell>{Number(r.beds)} · {String(r.bed_type ?? "")}</TableCell>
+                            <TableCell>{Number(r.base_people)}-{capacity}</TableCell>
+                            <TableCell>{formatVND(Number(r.base_price))}</TableCell>
+                            <TableCell><Badge variant={Number(r.available) > 0 ? "default" : "destructive"}>{Number(r.available ?? 0)}</Badge></TableCell>
+                            <TableCell>{roomType}</TableCell>
+                            <TableCell className="text-xs">{String(r.owner_email ?? "—")}</TableCell>
+                            <TableCell className="text-right space-x-1">
+                              <Button variant="ghost" size="icon" onClick={() => { setEditingRoom(r as Record<string, unknown>); setRoomOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" onClick={async () => {
+                                try {
+                                  await removeRoom({ data: { roomId: String(r.id) } });
+                                  await refreshHotelsFromDb();
+                                  const res = await fetchDetails({ data: { hotelId: detailHotel.id } });
+                                  setDetails(res);
+                                  toast.success("Đã xóa phòng");
+                                } catch (e) {
+                                  toast.error((e as Error).message || "Không xóa được phòng");
+                                }
+                              }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 )}
@@ -240,6 +341,15 @@ function AdminHotels() {
           )}
         </DialogContent>
       </Dialog>
+
+      <CrudFormDialog<Record<string, unknown>>
+        open={roomOpen}
+        onOpenChange={setRoomOpen}
+        title={editingRoom ? "Chỉnh sửa phòng" : "Thêm phòng"}
+        fields={roomFields}
+        initial={editingRoom ?? undefined}
+        onSubmit={handleRoomSubmit}
+      />
     </>
   );
 }

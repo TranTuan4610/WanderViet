@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Calendar, MapPin, Plane, Search, Sparkles, Users } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import heroImg from "@/assets/hero.jpg";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { TourCard } from "@/components/site/TourCard";
@@ -11,19 +11,48 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getTodayDateInputValue } from "@/lib/dateGuards";
 import { airports, destinations, flights, formatVND, promos, tours } from "@/lib/mockData";
+import { useAdminVersion } from "@/lib/adminStore";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
 function HomePage() {
+  useAdminVersion();
   const navigate = useNavigate();
   const [destination, setDestination] = useState("");
   const [departure, setDeparture] = useState("");
   const [tab, setTab] = useState("tours");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
+  const [contentPromos, setContentPromos] = useState<typeof promos>([]);
   const today = getTodayDateInputValue();
+
+  useEffect(() => {
+    let active = true;
+    supabase
+      .from("content_posts")
+      .select("title, subtitle, href, type")
+      .in("type", ["promo", "banner", "homepage"])
+      .eq("published", true)
+      .order("created_at", { ascending: false })
+      .limit(3)
+      .then(({ data }) => {
+        if (!active || !data?.length) return;
+        const colors = ["from-cyan-500 to-teal-500", "from-amber-400 to-orange-500", "from-sky-500 to-indigo-500"];
+        setContentPromos(data.map((p, i) => ({
+          title: p.title,
+          subtitle: p.subtitle || "Ưu đãi mới từ WanderViet",
+          href: p.href || "/tours",
+          color: colors[i % colors.length],
+        })));
+      })
+      .catch((e) => console.error("Load homepage content failed", e));
+    return () => { active = false; };
+  }, []);
+
+  const promoCards = contentPromos.length ? contentPromos : promos;
   return (
     <SiteLayout>
       {/* Hero */}
@@ -187,7 +216,7 @@ function HomePage() {
       {/* Promos */}
       <section className="container mx-auto px-4 pb-10">
         <div className="grid md:grid-cols-3 gap-4">
-          {promos.map((p) => (
+          {promoCards.map((p) => (
             <div key={p.title} className={`relative overflow-hidden rounded-2xl p-6 text-white bg-gradient-to-br ${p.color}`}>
               <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/10" />
               <div className="absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-white/10" />

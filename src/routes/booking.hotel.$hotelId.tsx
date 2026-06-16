@@ -7,14 +7,22 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { getTodayDateInputValue, isPastDateValue } from "@/lib/dateGuards";
 import { formatVND, hotels, type Hotel } from "@/lib/mockData";
+import { fetchHotelWithRooms } from "@/lib/hotelSupabase";
 
 export const Route = createFileRoute("/booking/hotel/$hotelId")({
   component: HotelBookingPage,
   validateSearch: (s: Record<string, unknown>) => ({ roomId: (s.roomId as string) ?? "" }),
-  loader: ({ params }): { hotel: Hotel } => {
-    const hotel = hotels.find((h) => h.id === params.hotelId);
-    if (!hotel) throw notFound();
-    return { hotel };
+  loader: async ({ params }): Promise<{ hotel: Hotel }> => {
+    const fresh = await fetchHotelWithRooms(params.hotelId);
+    if (fresh) {
+      const idx = hotels.findIndex((h) => h.id === fresh.id);
+      if (idx >= 0) hotels[idx] = fresh;
+      else hotels.unshift(fresh);
+      return { hotel: fresh };
+    }
+    const cached = hotels.find((h) => h.id === params.hotelId);
+    if (cached) return { hotel: cached };
+    throw notFound();
   },
 });
 
@@ -40,7 +48,7 @@ function HotelBookingPage() {
   const basePeople = selectedRoom?.basePeople ?? hotel.basePeople ?? 2;
   const extraRate = hotel.extraFeeRate ?? 0.25;
   const extraGuests = Math.max(0, guests - basePeople);
-  const roomBasePrice = selectedRoom ? Math.round(hotel.price * selectedRoom.priceMultiplier) : hotel.price;
+  const roomBasePrice = selectedRoom ? Math.round(selectedRoom.basePrice ?? hotel.price * selectedRoom.priceMultiplier) : hotel.price;
   const pricePerNight = Math.round(roomBasePrice * (1 + extraGuests * extraRate));
   const total = pricePerNight * rooms_ * nights;
 
@@ -54,7 +62,7 @@ function HotelBookingPage() {
         bookingType="hotel"
         refId={hotel.id}
         refTitle={`${hotel.name} - ${selectedRoom?.name ?? ""}`}
-        extraInfo={{ checkIn, checkOut, rooms: rooms_, guests, nights, pricePerNight, roomId: selectedRoom?.id, roomName: selectedRoom?.name, tier: selectedRoom?.tier }}
+        extraInfo={{ checkIn, checkOut, rooms: rooms_, guests, nights, pricePerNight, roomId: selectedRoom?.id, roomName: selectedRoom?.name, roomType: selectedRoom?.tier, capacity: selectedRoom?.maxPeople, amenities: selectedRoom?.amenities ?? [], ownerEmail: selectedRoom?.ownerEmail ?? null }}
         guestCount={guests}
         validateStep0={() => {
           if (!checkIn || !checkOut) return "Vui lòng chọn ngày nhận và trả phòng";
@@ -69,7 +77,7 @@ function HotelBookingPage() {
               <div className="grid sm:grid-cols-3 gap-3">
                 {rooms.map((r) => {
                   const active = r.id === selectedRoom?.id;
-                  const price = Math.round(hotel.price * r.priceMultiplier);
+                  const price = Math.round(r.basePrice ?? hotel.price * r.priceMultiplier);
                   return (
                     <button key={r.id} type="button" onClick={() => setSelectedRoomId(r.id)}
                       className={`text-left rounded-xl border-2 p-3 transition-all ${active ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>

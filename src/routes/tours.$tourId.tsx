@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Calendar, Check, Heart, Share2, Star, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAdminVersion } from "@/lib/adminStore";
 import { formatVND, tours, type Tour } from "@/lib/mockData";
+import { supabase } from "@/integrations/supabase/client";
 import { getTourVideoEmbedUrl } from "@/lib/tourVideos";
 import { useFavorites } from "@/lib/favorites";
 import { cn } from "@/lib/utils";
@@ -30,9 +32,38 @@ function normalizeScheduleItem(item: Tour["schedule"][number]) {
 }
 
 function TourDetailPage() {
-  useAdminVersion();
+  const adminVersion = useAdminVersion();
   const { tourId } = Route.useParams();
-  const tour = tours.find((t) => t.id === tourId) as Tour | undefined;
+  const [dbTour, setDbTour] = useState<Tour | null>(null);
+  const tour = dbTour ?? (tours.find((t) => t.id === tourId) as Tour | undefined) ?? undefined;
+  useEffect(() => {
+    let active = true;
+    supabase.from("tours").select("*").eq("id", tourId).maybeSingle().then(({ data }) => {
+      if (!active || !data) return;
+      const mapped: Tour = {
+        id: data.id, title: data.title, destination: data.destination, image: data.image ?? "",
+        price: Number(data.price), oldPrice: ((data as { old_price?: number | null }).old_price) ?? undefined,
+        days: data.days, nights: data.nights,
+        rating: Number(data.rating ?? 4.5), reviews: 0, stars: (data as { stars?: number }).stars ?? 4,
+        type: ((data as { type?: string }).type ?? "Biển") as Tour["type"],
+        seatsLeft: data.seats_left ?? 10,
+        schedule: ((data as { schedule?: unknown }).schedule as Tour["schedule"]) ?? [],
+        included: ((data as { included?: unknown }).included as string[]) ?? [],
+        excluded: ((data as { excluded?: unknown }).excluded as string[]) ?? [],
+        gallery: ((data as { gallery?: unknown }).gallery as string[]) ?? [],
+        description: data.description ?? "",
+        videoUrl: ((data as { video_url?: string | null }).video_url) ?? undefined,
+      };
+      const idx = tours.findIndex((t) => t.id === mapped.id);
+      if (idx >= 0) tours[idx] = mapped;
+      else tours.unshift(mapped);
+      setDbTour(mapped);
+    }).catch((e) => {
+      console.error(e);
+      toast.error((e as Error).message || "Không tải được tour mới nhất");
+    });
+    return () => { active = false; };
+  }, [adminVersion, tourId]);
   const { isFavorite, toggle } = useFavorites();
   const fav = tour ? isFavorite("tour", tour.id) : false;
   const onToggleFav = () => {

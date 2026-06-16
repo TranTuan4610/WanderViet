@@ -7,13 +7,28 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTodayDateInputValue, isFlightDepartingMoreThanOneHourFromNow, isPastDateValue } from "@/lib/dateGuards";
 import { flights, formatVND, type Flight } from "@/lib/mockData";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/booking/flight/$flightId")({
   component: FlightBookingPage,
-  loader: ({ params }): { flight: Flight } => {
-    const flight = flights.find((f) => f.id === params.flightId);
-    if (!flight) throw notFound();
-    return { flight };
+  loader: async ({ params }): Promise<{ flight: Flight }> => {
+    const { data } = await supabase.from("flights").select("*").eq("id", params.flightId).maybeSingle();
+    if (data) {
+      const flight = {
+        id: data.id, airline: data.airline,
+        from: data.from_code, to: data.to_code,
+        depart: data.depart, arrive: data.arrive,
+        duration: data.duration ?? "", price: Number(data.price),
+        baggage: data.baggage ?? "",
+      };
+      const idx = flights.findIndex((f) => f.id === flight.id);
+      if (idx >= 0) flights[idx] = flight;
+      else flights.unshift(flight);
+      return { flight };
+    }
+    const cached = flights.find((f) => f.id === params.flightId);
+    if (cached) return { flight: cached };
+    throw notFound();
   },
 });
 

@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { CalendarCheck, LayoutDashboard, Lock, LogOut, Plane, Settings, Tag, Users, Hotel, MapPinned, PlaneTakeoff } from "lucide-react";
+import { CalendarCheck, FileText, LayoutDashboard, Lock, LogOut, Plane, Settings, Tag, Users, Hotel, MapPinned, PlaneTakeoff } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ const items = [
   { to: "/admin/flights", label: "Vé máy bay", icon: PlaneTakeoff },
   { to: "/admin/bookings", label: "Booking", icon: CalendarCheck },
   { to: "/admin/promos", label: "Khuyến mãi", icon: Tag },
+  { to: "/admin/content", label: "Nội dung", icon: FileText },
   
 ];
 

@@ -49,29 +49,35 @@ export const notifyHotelOwnerOfBooking = createServerFn({ method: 'POST' })
       .select('id, name, owner_id')
       .eq('id', booking.ref_id)
       .maybeSingle()
-    if (!hotel?.owner_id) {
-      return { sent: false, reason: 'no_owner' }
+    // 3. Get owner email + name. Room-level owner_email from hotel_rooms/customer_info
+    // takes priority; hotel.owner_id remains the fallback for property owners.
+    const ci = (booking.customer_info ?? {}) as Record<string, any>
+    let ownerEmail = typeof ci.ownerEmail === 'string' && ci.ownerEmail.includes('@') ? ci.ownerEmail : ''
+    let ownerName: string | undefined
+
+    if (!ownerEmail && hotel?.owner_id) {
+      const { data: ownerUser, error: uErr } = await supabaseAdmin.auth.admin.getUserById(hotel.owner_id)
+      if (uErr || !ownerUser?.user?.email) {
+        console.error('notifyHotelOwnerOfBooking: owner email not found', { uErr })
+      } else {
+        ownerEmail = ownerUser.user.email
+        const { data: ownerProfile } = await supabaseAdmin
+          .from('profiles')
+          .select('name, full_name, email')
+          .eq('id', hotel.owner_id)
+          .maybeSingle()
+        ownerName =
+          ownerProfile?.name ||
+          ownerProfile?.full_name ||
+          (ownerUser.user.user_metadata as { name?: string; full_name?: string } | null)?.name ||
+          (ownerUser.user.user_metadata as { name?: string; full_name?: string } | null)?.full_name ||
+          undefined
+      }
     }
 
-    // 3. Get owner email + name
-    const { data: ownerUser, error: uErr } = await supabaseAdmin.auth.admin.getUserById(hotel.owner_id)
-    if (uErr || !ownerUser?.user?.email) {
-      console.error('notifyHotelOwnerOfBooking: owner email not found', { uErr })
-      return { sent: false, reason: 'owner_email_not_found' }
-    }
-    const ownerEmail = ownerUser.user.email
-    const { data: ownerProfile } = await supabaseAdmin
-      .from('profiles')
-      .select('name')
-      .eq('id', hotel.owner_id)
-      .maybeSingle()
-    const ownerName =
-      ownerProfile?.name ||
-      (ownerUser.user.user_metadata as { name?: string } | null)?.name ||
-      undefined
+    if (!ownerEmail) return { sent: false, reason: 'owner_email_not_found' }
 
     // 4. Build template data
-    const ci = (booking.customer_info ?? {}) as Record<string, any>
     const scheduleParts: string[] = []
     if (ci.checkIn && ci.checkOut) scheduleParts.push(`${ci.checkIn} → ${ci.checkOut}`)
     else if (ci.date) scheduleParts.push(`Ngày: ${ci.date}`)

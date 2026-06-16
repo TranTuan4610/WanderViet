@@ -34,9 +34,15 @@ function AdminUsers() {
 
   useEffect(() => { load(); }, [load]);
 
-  const filtered = users.filter((u) =>
-    u.name.toLowerCase().includes(q.toLowerCase()) || u.email.toLowerCase().includes(q.toLowerCase())
-  );
+  const filtered = users.filter((u) => {
+    const keyword = q.toLowerCase();
+    return (
+      u.name.toLowerCase().includes(keyword) ||
+      u.full_name.toLowerCase().includes(keyword) ||
+      u.email.toLowerCase().includes(keyword) ||
+      (u.phone || "").toLowerCase().includes(keyword)
+    );
+  });
 
   async function toggleRole(u: Row) {
     const next = u.role === "admin" ? "user" : "admin";
@@ -48,7 +54,8 @@ function AdminUsers() {
   }
 
   async function toggleBan(u: Row) {
-    const banned = !u.banned_until || new Date(u.banned_until) < new Date();
+    const isCurrentlyBanned = u.status === "banned" || (!!u.banned_until && new Date(u.banned_until) > new Date());
+    const banned = !isCurrentlyBanned;
     try {
       await callSetBanned({ data: { userId: u.id, banned } });
       toast.success(banned ? "Đã khoá tài khoản" : "Đã mở khoá");
@@ -80,21 +87,22 @@ function AdminUsers() {
           <TableHeader>
             <TableRow>
               <TableHead>Tên</TableHead><TableHead>Email</TableHead><TableHead>SĐT</TableHead>
-              <TableHead>Vai trò</TableHead><TableHead>Trạng thái</TableHead><TableHead className="text-right">Hành động</TableHead>
+              <TableHead>Vai trò</TableHead><TableHead>Trạng thái</TableHead><TableHead>Ngày tạo</TableHead><TableHead className="text-right">Hành động</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading && (<TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Đang tải...</TableCell></TableRow>)}
-            {!loading && filtered.length === 0 && (<TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Chưa có người dùng</TableCell></TableRow>)}
+            {loading && (<TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Đang tải...</TableCell></TableRow>)}
+            {!loading && filtered.length === 0 && (<TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Chưa có người dùng</TableCell></TableRow>)}
             {filtered.map((u) => {
-              const isBanned = !!u.banned_until && new Date(u.banned_until) > new Date();
+              const isBanned = u.status === "banned" || (!!u.banned_until && new Date(u.banned_until) > new Date());
               return (
                 <TableRow key={u.id}>
                   <TableCell className="font-medium">{u.name}</TableCell>
                   <TableCell>{u.email}</TableCell>
                   <TableCell>{u.phone || "—"}</TableCell>
                   <TableCell><Badge variant={u.role === "admin" ? "default" : "secondary"}>{u.role}</Badge></TableCell>
-                  <TableCell><Badge variant={isBanned ? "destructive" : "default"} className={isBanned ? "" : "bg-emerald-500"}>{isBanned ? "Đã khoá" : "Hoạt động"}</Badge></TableCell>
+                  <TableCell><Badge variant={isBanned ? "destructive" : "default"} className={isBanned ? "" : "bg-emerald-500"}>{isBanned ? "Đã khoá" : u.status === "inactive" ? "Tạm ngưng" : "Hoạt động"}</Badge></TableCell>
+                  <TableCell>{new Date(u.created_at).toLocaleDateString("vi-VN")}</TableCell>
                   <TableCell className="text-right space-x-1">
                     {u.role === "admin" && (
                       <Button variant="ghost" size="icon" title="Hạ quyền" onClick={() => toggleRole(u)}>

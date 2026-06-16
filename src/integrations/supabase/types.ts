@@ -20,12 +20,14 @@ export type Database = {
           customer_info: Json | null
           id: string
           payment_method: string | null
+          paid_at: string | null
           ref_id: string
           ref_title: string | null
           room_id: string | null
           status: string
           total: number
           type: string
+          updated_at: string
           user_id: string | null
         }
         Insert: {
@@ -33,12 +35,14 @@ export type Database = {
           customer_info?: Json | null
           id?: string
           payment_method?: string | null
+          paid_at?: string | null
           ref_id: string
           ref_title?: string | null
           room_id?: string | null
           status?: string
           total?: number
           type: string
+          updated_at?: string
           user_id?: string | null
         }
         Update: {
@@ -46,12 +50,14 @@ export type Database = {
           customer_info?: Json | null
           id?: string
           payment_method?: string | null
+          paid_at?: string | null
           ref_id?: string
           ref_title?: string | null
           room_id?: string | null
           status?: string
           total?: number
           type?: string
+          updated_at?: string
           user_id?: string | null
         }
         Relationships: [
@@ -68,28 +74,40 @@ export type Database = {
         Row: {
           body: string | null
           created_at: string
+          deleted_at: string | null
+          href: string | null
           id: string
           image: string | null
           published: boolean
+          subtitle: string | null
           title: string
+          updated_at: string
           type: string
         }
         Insert: {
           body?: string | null
           created_at?: string
+          deleted_at?: string | null
+          href?: string | null
           id?: string
           image?: string | null
           published?: boolean
+          subtitle?: string | null
           title: string
+          updated_at?: string
           type?: string
         }
         Update: {
           body?: string | null
           created_at?: string
+          deleted_at?: string | null
+          href?: string | null
           id?: string
           image?: string | null
           published?: boolean
+          subtitle?: string | null
           title?: string
+          updated_at?: string
           type?: string
         }
         Relationships: []
@@ -222,6 +240,7 @@ export type Database = {
           created_at: string
           depart: string
           duration: string | null
+          deleted_at: string | null
           from_code: string
           id: string
           price: number
@@ -235,6 +254,7 @@ export type Database = {
           created_at?: string
           depart: string
           duration?: string | null
+          deleted_at?: string | null
           from_code: string
           id?: string
           price?: number
@@ -248,6 +268,7 @@ export type Database = {
           created_at?: string
           depart?: string
           duration?: string | null
+          deleted_at?: string | null
           from_code?: string
           id?: string
           price?: number
@@ -259,44 +280,68 @@ export type Database = {
       hotel_rooms: {
         Row: {
           available: number | null
+          amenities: Json
           base_people: number
           base_price: number
+          bed_type: string | null
           beds: number
+          capacity: number | null
           created_at: string
+          deleted_at: string | null
           description: string | null
           hotel_id: string
           id: string
           image: string | null
           max_people: number
           name: string
+          owner_email: string | null
+          price_multiplier: number
+          room_type: string
+          updated_at: string
           vip: boolean
         }
         Insert: {
           available?: number | null
+          amenities?: Json
           base_people?: number
           base_price?: number
+          bed_type?: string | null
           beds?: number
+          capacity?: number | null
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           hotel_id: string
           id?: string
           image?: string | null
           max_people?: number
           name: string
+          owner_email?: string | null
+          price_multiplier?: number
+          room_type?: string
+          updated_at?: string
           vip?: boolean
         }
         Update: {
           available?: number | null
+          amenities?: Json
           base_people?: number
           base_price?: number
+          bed_type?: string | null
           beds?: number
+          capacity?: number | null
           created_at?: string
+          deleted_at?: string | null
           description?: string | null
           hotel_id?: string
           id?: string
           image?: string | null
           max_people?: number
           name?: string
+          owner_email?: string | null
+          price_multiplier?: number
+          room_type?: string
+          updated_at?: string
           vip?: boolean
         }
         Relationships: [
@@ -311,11 +356,16 @@ export type Database = {
       }
       hotels: {
         Row: {
+          address: string | null
+          amenities: Json
+          base_people: number
           check_in: string | null
           check_out: string | null
           city: string
           created_at: string
           description: string | null
+          deleted_at: string | null
+          extra_fee_rate: number
           gallery: Json
           id: string
           image: string | null
@@ -324,15 +374,21 @@ export type Database = {
           price: number
           rating: number | null
           requirements: string | null
+          room_description: string | null
           stars: number
           updated_at: string
         }
         Insert: {
+          address?: string | null
+          amenities?: Json
+          base_people?: number
           check_in?: string | null
           check_out?: string | null
           city: string
           created_at?: string
           description?: string | null
+          deleted_at?: string | null
+          extra_fee_rate?: number
           gallery?: Json
           id?: string
           image?: string | null
@@ -341,15 +397,21 @@ export type Database = {
           price?: number
           rating?: number | null
           requirements?: string | null
+          room_description?: string | null
           stars?: number
           updated_at?: string
         }
         Update: {
+          address?: string | null
+          amenities?: Json
+          base_people?: number
           check_in?: string | null
           check_out?: string | null
           city?: string
           created_at?: string
           description?: string | null
+          deleted_at?: string | null
+          extra_fee_rate?: number
           gallery?: Json
           id?: string
           image?: string | null
@@ -358,6 +420,7 @@ export type Database = {
           price?: number
           rating?: number | null
           requirements?: string | null
+          room_description?: string | null
           stars?: number
           updated_at?: string
         }
@@ -367,25 +430,37 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          email: string | null
+          full_name: string | null
           id: string
           name: string | null
           phone: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
+          full_name?: string | null
           id: string
           name?: string | null
           phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
+          full_name?: string | null
           id?: string
           name?: string | null
           phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
           updated_at?: string
         }
         Relationships: []
@@ -464,12 +539,14 @@ export type Database = {
           days: number
           description: string | null
           destination: string
+          deleted_at: string | null
           excluded: Json | null
           gallery: Json
           id: string
           image: string | null
           included: Json | null
           nights: number
+          old_price: number | null
           price: number
           rating: number | null
           schedule: Json | null
@@ -485,12 +562,14 @@ export type Database = {
           days?: number
           description?: string | null
           destination: string
+          deleted_at?: string | null
           excluded?: Json | null
           gallery?: Json
           id?: string
           image?: string | null
           included?: Json | null
           nights?: number
+          old_price?: number | null
           price?: number
           rating?: number | null
           schedule?: Json | null
@@ -506,12 +585,14 @@ export type Database = {
           days?: number
           description?: string | null
           destination?: string
+          deleted_at?: string | null
           excluded?: Json | null
           gallery?: Json
           id?: string
           image?: string | null
           included?: Json | null
           nights?: number
+          old_price?: number | null
           price?: number
           rating?: number | null
           schedule?: Json | null
@@ -551,42 +632,64 @@ export type Database = {
           created_at: string
           discount_type: string
           discount_value: number
+          deleted_at: string | null
           expires_at: string | null
           id: string
           starts_at: string | null
           status: string
           usage_limit: number | null
           used: number
+          updated_at: string
         }
         Insert: {
           code: string
           created_at?: string
           discount_type?: string
           discount_value?: number
+          deleted_at?: string | null
           expires_at?: string | null
           id?: string
           starts_at?: string | null
           status?: string
           usage_limit?: number | null
           used?: number
+          updated_at?: string
         }
         Update: {
           code?: string
           created_at?: string
           discount_type?: string
           discount_value?: number
+          deleted_at?: string | null
           expires_at?: string | null
           id?: string
           starts_at?: string | null
           status?: string
           usage_limit?: number | null
           used?: number
+          updated_at?: string
         }
         Relationships: []
       }
     }
     Views: {
-      [_ in never]: never
+      users: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          name: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+          updated_at: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
     }
     Functions: {
       delete_email: {

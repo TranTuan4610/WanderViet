@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { Pencil, Plus, Tag, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -32,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { adminDeleteVoucher, adminListVouchers, adminUpsertVoucher } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/admin/promos")({ component: AdminPromos });
 
@@ -64,6 +65,7 @@ const schema = z.object({
   status: z.enum(["active", "inactive", "expired"]),
 });
 
+type VoucherPayload = z.infer<typeof schema>;
 
 function formatDiscount(v: Voucher) {
   if (v.discount_type === "percent") return `-${v.discount_value}%`;
@@ -81,20 +83,30 @@ function AdminPromos() {
   const [editing, setEditing] = useState<Voucher | null>(null);
   const [toDelete, setToDelete] = useState<Voucher | null>(null);
 
+  const loadVouchers = useServerFn(adminListVouchers);
+  const saveVoucher = useServerFn(adminUpsertVoucher);
+  const removeVoucher = useServerFn(adminDeleteVoucher);
+
   const reload = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("vouchers")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) toast.error(error.message);
-    setList((data ?? []) as Voucher[]);
-    setLoading(false);
+    try {
+      const data = await loadVouchers();
+      setList((data ?? []) as Voucher[]);
+    } catch (e) {
+      toast.error((e as Error).message || "Không tải được danh sách voucher");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     reload();
   }, []);
+
+  const handleSave = async (payload: VoucherPayload, id?: string | null) => {
+    await saveVoucher({ data: { id: id ?? null, values: payload } });
+    await reload();
+  };
 
   return (
     <>
@@ -199,7 +211,7 @@ function AdminPromos() {
         open={open}
         onOpenChange={setOpen}
         initial={editing}
-        onSaved={reload}
+        onSave={handleSave}
       />
 
       <AlertDialog open={!!toDelete} onOpenChange={(v) => !v && setToDelete(null)}>
@@ -207,8 +219,7 @@ function AdminPromos() {
           <AlertDialogHeader>
             <AlertDialogTitle>Xoá voucher?</AlertDialogTitle>
             <AlertDialogDescription>
-              Voucher <span className="font-mono font-bold">{toDelete?.code}</span> sẽ bị xoá
-              vĩnh viễn.
+              Voucher <span className="font-mono font-bold">{toDelete?.code}</span> sẽ bị xoá khỏi Supabase.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -216,16 +227,15 @@ function AdminPromos() {
             <AlertDialogAction
               onClick={async () => {
                 if (!toDelete) return;
-                const { error } = await supabase
-                  .from("vouchers")
-                  .delete()
-                  .eq("id", toDelete.id);
-                if (error) toast.error(error.message);
-                else {
+                try {
+                  await removeVoucher({ data: { id: toDelete.id } });
                   toast.success("Đã xoá voucher");
-                  reload();
+                  await reload();
+                } catch (e) {
+                  toast.error((e as Error).message || "Không xoá được voucher");
+                } finally {
+                  setToDelete(null);
                 }
-                setToDelete(null);
               }}
             >
               Xoá
@@ -241,12 +251,12 @@ function VoucherDialog({
   open,
   onOpenChange,
   initial,
-  onSaved,
+  onSave,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initial: Voucher | null;
-  onSaved: () => void;
+  onSave: (payload: VoucherPayload, id?: string | null) => Promise<void>;
 }) {
   const [code, setCode] = useState("");
   const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
@@ -298,33 +308,27 @@ function VoucherDialog({
       toast.error("Ngày bắt đầu phải trước ngày kết thúc");
       return;
     }
-    setSaving(true);
-    const payload = {
-      code: parsed.data.code,
-      discount_type: parsed.data.discount_type,
-      discount_value: parsed.data.discount_value,
-      usage_limit: parsed.data.usage_limit,
-      starts_at: parsed.data.starts_at
-        ? new Date(parsed.data.starts_at).toISOString()
-        : null,
-      expires_at: parsed.data.expires_at
-        ? new Date(parsed.data.expires_at).toISOString()
-        : null,
-      status: parsed.data.status,
-    };
-    const { error } = initial
-      ? await supabase.from("vouchers").update(payload).eq("id", initial.id)
-      : await supabase.from("vouchers").insert(payload);
-    setSaving(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success(initial ? "Đã cập nhật voucher" : "Đã tạo voucher");
-    onOpenChange(false);
-    onSaved();
-  };
 
+    setSaving(true);
+    try {
+      const payload: VoucherPayload = {
+        code: parsed.data.code,
+        discount_type: parsed.data.discount_type,
+        discount_value: parsed.data.discount_value,
+        usage_limit: parsed.data.usage_limit,
+        starts_at: parsed.data.starts_at ? new Date(parsed.data.starts_at).toISOString() : null,
+        expires_at: parsed.data.expires_at ? new Date(parsed.data.expires_at).toISOString() : null,
+        status: parsed.data.status,
+      };
+      await onSave(payload, initial?.id ?? null);
+      toast.success(initial ? "Đã cập nhật voucher" : "Đã tạo voucher");
+      onOpenChange(false);
+    } catch (e) {
+      toast.error((e as Error).message || "Không lưu được voucher");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -335,23 +339,13 @@ function VoucherDialog({
         <div className="space-y-4">
           <div>
             <Label className="mb-2 block">Mã voucher</Label>
-            <Input
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="SUMMER50"
-              maxLength={32}
-            />
+            <Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="SUMMER50" maxLength={32} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="mb-2 block">Loại giảm giá</Label>
-              <Select
-                value={discountType}
-                onValueChange={(v) => setDiscountType(v as "percent" | "fixed")}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+              <Select value={discountType} onValueChange={(v) => setDiscountType(v as "percent" | "fixed")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="percent">Phần trăm (%)</SelectItem>
                   <SelectItem value="fixed">Số tiền (VND)</SelectItem>
@@ -359,57 +353,28 @@ function VoucherDialog({
               </Select>
             </div>
             <div>
-              <Label className="mb-2 block">
-                Giá trị {discountType === "percent" ? "(%)" : "(VND)"}
-              </Label>
-              <Input
-                type="number"
-                min={1}
-                value={discountValue}
-                onChange={(e) => setDiscountValue(e.target.value)}
-                placeholder={discountType === "percent" ? "50" : "100000"}
-              />
+              <Label className="mb-2 block">Giá trị {discountType === "percent" ? "(%)" : "(VND)"}</Label>
+              <Input type="number" min={1} value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} placeholder={discountType === "percent" ? "50" : "100000"} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="mb-2 block">Giới hạn sử dụng</Label>
-              <Input
-                type="number"
-                min={1}
-                value={usageLimit}
-                onChange={(e) => setUsageLimit(e.target.value)}
-                placeholder="Để trống = không giới hạn"
-              />
-            </div>
+          <div>
+            <Label className="mb-2 block">Giới hạn sử dụng</Label>
+            <Input type="number" min={1} value={usageLimit} onChange={(e) => setUsageLimit(e.target.value)} placeholder="Để trống = không giới hạn" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="mb-2 block">Ngày bắt đầu</Label>
-              <Input
-                type="date"
-                value={startsAt}
-                onChange={(e) => setStartsAt(e.target.value)}
-              />
+              <Input type="date" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
             </div>
             <div>
               <Label className="mb-2 block">Ngày kết thúc</Label>
-              <Input
-                type="date"
-                value={expiresAt}
-                onChange={(e) => setExpiresAt(e.target.value)}
-              />
+              <Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
             </div>
           </div>
           <div>
             <Label className="mb-2 block">Trạng thái</Label>
-            <Select
-              value={status}
-              onValueChange={(v) => setStatus(v as "active" | "inactive" | "expired")}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+            <Select value={status} onValueChange={(v) => setStatus(v as "active" | "inactive" | "expired")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="active">Đang hoạt động</SelectItem>
                 <SelectItem value="inactive">Tạm dừng</SelectItem>
@@ -419,12 +384,8 @@ function VoucherDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Huỷ
-          </Button>
-          <Button onClick={submit} disabled={saving}>
-            {saving ? "Đang lưu..." : initial ? "Lưu" : "Tạo voucher"}
-          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Huỷ</Button>
+          <Button onClick={submit} disabled={saving}>{saving ? "Đang lưu..." : initial ? "Lưu" : "Tạo voucher"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

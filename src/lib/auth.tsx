@@ -1,7 +1,16 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AuthUser = { id: string; name: string; email: string; phone?: string; role?: "admin" | "user"; avatarUrl?: string };
+export type AuthUser = {
+  id: string;
+  name: string;
+  fullName?: string;
+  email: string;
+  phone?: string;
+  role?: "admin" | "user";
+  status?: "active" | "inactive" | "banned";
+  avatarUrl?: string;
+};
 
 type AuthCtx = {
   user: AuthUser | null;
@@ -22,18 +31,27 @@ const Ctx = createContext<AuthCtx | null>(null);
 
 async function hydrateUser(userId: string, email: string, meta?: Record<string, unknown>): Promise<AuthUser> {
   const [{ data: profile }, { data: roles }] = await Promise.all([
-    supabase.from("profiles").select("name, phone, avatar_url").eq("id", userId).maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("email, name, full_name, phone, role, status, avatar_url")
+      .eq("id", userId)
+      .maybeSingle(),
     supabase.from("user_roles").select("role").eq("user_id", userId),
   ]);
-  const role = roles?.some((r) => r.role === "admin") ? "admin" : "user";
+  const role = profile?.role === "admin" || roles?.some((r) => r.role === "admin") ? "admin" : "user";
   const metaName = typeof meta?.name === "string" ? (meta.name as string) : undefined;
+  const metaFullName = typeof meta?.full_name === "string" ? (meta.full_name as string) : undefined;
   const metaPhone = typeof meta?.phone === "string" ? (meta.phone as string) : undefined;
+  const resolvedEmail = profile?.email || email;
+  const resolvedName = profile?.name || profile?.full_name || metaName || metaFullName || resolvedEmail.split("@")[0];
   return {
     id: userId,
-    email,
-    name: profile?.name || metaName || email.split("@")[0],
+    email: resolvedEmail,
+    name: resolvedName,
+    fullName: profile?.full_name || resolvedName,
     phone: profile?.phone || metaPhone || undefined,
     avatarUrl: profile?.avatar_url || undefined,
+    status: (profile?.status as AuthUser["status"] | null) || "active",
     role,
   };
 }
@@ -75,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email, password,
       options: {
         emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
-        data: { name, phone },
+        data: { name, full_name: name, phone },
       },
     });
     if (error) return { error: error.message };

@@ -3,6 +3,7 @@ import { CalendarCheck, DollarSign, TrendingUp, Users } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card } from "@/components/ui/card";
 import { formatVND, tours } from "@/lib/mockData";
+import { useAdminVersion } from "@/lib/adminStore";
 
 export const Route = createFileRoute("/admin/")({ component: AdminDashboard });
 
@@ -34,6 +35,7 @@ function buildCurrentYearData() {
 }
 
 function AdminDashboard() {
+  useAdminVersion();
   const now = new Date();
   const currentYear = now.getFullYear();
   const lastYearLabel = currentYear - 1;

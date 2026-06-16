@@ -3,6 +3,7 @@
 // webhook to ensure a single, consistent code path.
 
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { explainSupabaseError } from "@/lib/adminErrors";
 
 export type BookingType = "tour" | "hotel" | "flight";
 
@@ -28,10 +29,11 @@ export async function insertPendingBooking(input: CreatePendingInput) {
       status: "pending",
       user_id: input.user_id ?? null,
       customer_info: input.customer_info as never,
+      updated_at: new Date().toISOString(),
     })
     .select("id")
     .single();
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(explainSupabaseError(error, "Không tạo được booking pending"));
   return { id: data.id as string };
 }
 
@@ -41,7 +43,7 @@ export async function fetchBookingStatus(id: string) {
     .select("id, status")
     .eq("id", id)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(explainSupabaseError(error, "Không đọc được trạng thái booking"));
   return data ? { id: data.id as string, status: data.status as string } : null;
 }
 
@@ -53,11 +55,11 @@ export async function fetchBookingStatus(id: string) {
 export async function markBookingPaid(id: string) {
   const { data, error } = await supabaseAdmin
     .from("bookings")
-    .update({ status: "paid" })
+    .update({ status: "paid", paid_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq("id", id)
     .neq("status", "paid")
     .select("id, status")
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(explainSupabaseError(error, "Không cập nhật thanh toán booking"));
   return data;
 }
