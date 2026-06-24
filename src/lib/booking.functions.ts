@@ -1,10 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import {
-  fetchBookingStatus,
-  insertPendingBooking,
-  markBookingPaid,
-} from "./booking.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const guestSchema = z.object({
   name: z.string().min(1).max(200),
@@ -14,12 +10,11 @@ const guestSchema = z.object({
 });
 
 const createPendingSchema = z.object({
-  type: z.enum(["tour", "hotel", "flight"]),
+  type: z.enum(["tour", "hotel", "flight", "rental"]),
   ref_id: z.string().min(1).max(200),
   ref_title: z.string().max(500).optional().nullable(),
   total: z.number().int().min(0).max(10_000_000_000),
   payment_method: z.enum(["qr", "momo"]),
-  user_id: z.string().uuid().optional().nullable(),
   customer_info: z.object({
     name: z.string().min(1).max(200),
     phone: z.string().min(1).max(20),
@@ -44,15 +39,17 @@ const createPendingSchema = z.object({
 });
 
 export const createPendingBooking = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input) => createPendingSchema.parse(input))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { insertPendingBooking } = await import("./booking.server");
     const row = await insertPendingBooking({
       type: data.type,
       ref_id: data.ref_id,
       ref_title: data.ref_title ?? null,
       total: data.total,
       payment_method: data.payment_method,
-      user_id: data.user_id ?? null,
+      user_id: context.userId,
       customer_info: data.customer_info,
     });
     return row;
@@ -61,6 +58,7 @@ export const createPendingBooking = createServerFn({ method: "POST" })
 export const getBookingStatus = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data }) => {
+    const { fetchBookingStatus } = await import("./booking.server");
     const row = await fetchBookingStatus(data.id);
     if (!row) return { id: data.id, status: "not_found" as const };
     return row;
@@ -72,8 +70,18 @@ export const getBookingStatus = createServerFn({ method: "POST" })
  * point for production is the public webhook at /api/public/payment-callback.
  */
 export const confirmBookingPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { data: owned, error } = await context.supabase
+      .from("bookings")
+      .select("id")
+      .eq("id", data.id)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!owned) throw new Error("Không tìm thấy đơn đặt của bạn");
+    const { markBookingPaid } = await import("./booking.server");
     await markBookingPaid(data.id);
     return { ok: true };
   });

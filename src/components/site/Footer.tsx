@@ -1,8 +1,10 @@
 import { Facebook, Mail, Plane, Youtube } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/lib/i18n";
 
 export function Footer() {
+  const { t } = useLanguage();
   return (
     <footer className="bg-slate-900 text-slate-200 mt-20">
       <div className="container mx-auto px-4 py-14 grid gap-10 md:grid-cols-4">
@@ -13,9 +15,7 @@ export function Footer() {
             </span>
             <span className="font-heading text-xl font-bold">WanderViet</span>
           </div>
-          <p className="text-sm text-slate-400 leading-relaxed">
-            Người bạn đồng hành cho mọi hành trình. Đặt tour, khách sạn và vé máy bay với giá tốt nhất.
-          </p>
+          <p className="text-sm text-slate-400 leading-relaxed">{t("footer.tagline")}</p>
           <div className="flex gap-3 mt-4">
             {[
               { Icon: Facebook, href: "https://www.facebook.com/share/1R5bcomULN/" },
@@ -29,40 +29,41 @@ export function Footer() {
         </div>
 
         <div>
-          <h4 className="font-semibold mb-4 text-white">Hỗ trợ</h4>
+          <h4 className="font-semibold mb-4 text-white">{t("footer.support")}</h4>
           <ul className="space-y-2 text-sm text-slate-400">
-            <li><a href="#" className="hover:text-primary">Trung tâm trợ giúp</a></li>
-            <li><a href="#" className="hover:text-primary">Liên hệ</a></li>
-            <li><a href="#" className="hover:text-primary">Câu hỏi thường gặp</a></li>
+            <li><a href="#" className="hover:text-primary">{t("footer.helpCenter")}</a></li>
+            <li><a href="#" className="hover:text-primary">{t("footer.contact")}</a></li>
+            <li><a href="#" className="hover:text-primary">{t("footer.faq")}</a></li>
             <li><a href="tel:0865665046" className="hover:text-primary">Hotline: 0865 665 046</a></li>
           </ul>
         </div>
 
         <div>
-          <h4 className="font-semibold mb-4 text-white">Chính sách</h4>
+          <h4 className="font-semibold mb-4 text-white">{t("footer.policy")}</h4>
           <ul className="space-y-2 text-sm text-slate-400">
-            <li><a href="#" className="hover:text-primary">Điều khoản sử dụng</a></li>
-            <li><a href="#" className="hover:text-primary">Bảo mật thông tin</a></li>
-            <li><a href="#" className="hover:text-primary">Chính sách hoàn hủy</a></li>
-            <li><a href="#" className="hover:text-primary">Thanh toán</a></li>
+            <li><a href="#" className="hover:text-primary">{t("footer.terms")}</a></li>
+            <li><a href="#" className="hover:text-primary">{t("footer.privacy")}</a></li>
+            <li><a href="#" className="hover:text-primary">{t("footer.refund")}</a></li>
+            <li><a href="#" className="hover:text-primary">{t("footer.payment")}</a></li>
           </ul>
         </div>
 
         <div>
-          <h4 className="font-semibold mb-4 text-white">Newsletter</h4>
-          <p className="text-sm text-slate-400 mb-3">Đăng ký nhận ưu đãi mỗi tuần.</p>
+          <h4 className="font-semibold mb-4 text-white">{t("footer.newsletter")}</h4>
+          <p className="text-sm text-slate-400 mb-3">{t("footer.newsletterDesc")}</p>
           <form onSubmit={(e) => e.preventDefault()} className="flex gap-2">
-            <Input type="email" placeholder="Email của bạn" className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500" />
+            <Input type="email" placeholder={t("footer.emailPlaceholder")} className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500" />
             <Button type="submit" size="icon"><Mail className="h-4 w-4" /></Button>
           </form>
         </div>
       </div>
       <div className="border-t border-slate-800">
         <div className="container mx-auto px-4 py-5 text-xs text-slate-500 flex flex-col md:flex-row justify-between gap-2">
-          <p>© {new Date().getFullYear()} WanderViet. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} WanderViet. {t("footer.rights")}</p>
           <p>Made with ♥ in Vietnam</p>
         </div>
       </div>
     </footer>
   );
 }
+

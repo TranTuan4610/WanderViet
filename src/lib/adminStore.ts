@@ -1,14 +1,15 @@
 // =============================================================
-// Admin data store — Supabase is the single source of truth.
+// Admin data store — Supabase as the single source of truth.
 //
-// Every admin create/update/delete runs through server functions
-// with the Supabase service role. After each mutation, the related
-// list is refetched and subscribers re-render immediately.
+// `tours`, `hotels`, `flights` arrays in mockData.ts start empty
+// and are populated by `initDataFromDb()` on app boot. Any admin
+// create/update/delete writes to Supabase first, then refetches
+// to keep the arrays in sync. Components re-render via
+// `useAdminVersion()`.
 // =============================================================
 import { useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { adminInsert, adminUpdate, adminDelete } from "./admin.functions";
-import { explainSupabaseError } from "./adminErrors";
 import {
   flights,
   getHotelDescription,
@@ -17,7 +18,6 @@ import {
   tours,
   type Flight,
   type Hotel,
-  type HotelRoom,
   type Tour,
 } from "./mockData";
 
@@ -38,9 +38,6 @@ const bump = () => {
   notify();
 };
 
-const asStringArray = (value: unknown): string[] => Array.isArray(value) ? value.map(String).filter(Boolean) : [];
-const asSchedule = (value: unknown): Tour["schedule"] => Array.isArray(value) ? (value as Tour["schedule"]) : [];
-
 // ---------- DB row mappers ----------
 type TourRow = {
   id: string;
@@ -48,7 +45,6 @@ type TourRow = {
   destination: string;
   image: string | null;
   price: number | string;
-  old_price?: number | string | null;
   days: number;
   nights: number;
   rating: number | string | null;
@@ -69,7 +65,6 @@ function mapTour(row: TourRow): Tour {
     destination: row.destination,
     image: row.image ?? "",
     price: Number(row.price),
-    oldPrice: row.old_price == null ? undefined : Number(row.old_price),
     days: row.days,
     nights: row.nights,
     rating: Number(row.rating ?? 4.5),
@@ -77,61 +72,18 @@ function mapTour(row: TourRow): Tour {
     stars: row.stars ?? 4,
     type: (row.type ?? "Biển") as Tour["type"],
     seatsLeft: row.seats_left ?? 10,
-    schedule: asSchedule(row.schedule),
-    included: asStringArray(row.included),
-    excluded: asStringArray(row.excluded),
-    gallery: asStringArray(row.gallery),
+    schedule: (row.schedule as Tour["schedule"]) ?? [],
+    included: (row.included as string[]) ?? [],
+    excluded: (row.excluded as string[]) ?? [],
+    gallery: (row.gallery as string[]) ?? [],
     description: row.description ?? "",
     videoUrl: row.video_url ?? undefined,
-  };
-}
-
-type HotelRoomRow = {
-  id: string;
-  hotel_id: string;
-  name: string;
-  room_type?: string | null;
-  beds: number;
-  bed_type?: string | null;
-  base_people: number;
-  max_people: number;
-  capacity?: number | null;
-  base_price: number | string;
-  price_multiplier?: number | string | null;
-  vip: boolean;
-  description: string | null;
-  image: string | null;
-  available: number | null;
-  amenities?: unknown;
-  owner_email?: string | null;
-};
-
-function mapRoom(row: HotelRoomRow, hotelPrice: number): HotelRoom {
-  const rawTier = (row.room_type ?? (row.vip ? "vip" : "standard")).toLowerCase();
-  const tier = (["standard", "deluxe", "vip"].includes(rawTier) ? rawTier : row.vip ? "vip" : "standard") as HotelRoom["tier"];
-  const basePrice = Number(row.base_price ?? 0);
-  const computedMultiplier = hotelPrice > 0 && basePrice > 0 ? basePrice / hotelPrice : 1;
-  return {
-    id: row.id,
-    name: row.name,
-    tier,
-    beds: Number(row.beds ?? 1),
-    bedType: row.bed_type ?? `${row.beds ?? 1} giường`,
-    basePeople: Number(row.base_people ?? 2),
-    maxPeople: Number(row.capacity ?? row.max_people ?? 4),
-    priceMultiplier: Number(row.price_multiplier ?? computedMultiplier || 1),
-    basePrice: basePrice || undefined,
-    available: Number(row.available ?? 0),
-    description: row.description ?? "",
-    amenities: asStringArray(row.amenities),
-    ownerEmail: row.owner_email ?? undefined,
   };
 }
 
 type HotelRow = {
   id: string;
   name: string;
-  address?: string | null;
   city: string;
   price: number | string;
   rating: number | string | null;
@@ -140,42 +92,31 @@ type HotelRow = {
   check_in: string | null;
   check_out: string | null;
   description: string | null;
-  room_description?: string | null;
   requirements: string | null;
-  amenities?: unknown;
   gallery: unknown;
   owner_id: string | null;
-  base_people?: number | null;
-  extra_fee_rate?: number | string | null;
 };
-function mapHotel(row: HotelRow, idx: number, roomRows: HotelRoomRow[] = []): Hotel {
-  const price = Number(row.price);
-  const mappedRooms = roomRows.map((r) => mapRoom(r, price));
-  const hotel = hydrateHotelDetails(
+function mapHotel(row: HotelRow, idx: number): Hotel {
+  return hydrateHotelDetails(
     {
       id: row.id,
       name: row.name,
-      address: row.address ?? row.city,
+      address: row.city,
       city: row.city,
-      price,
+      price: Number(row.price),
       rating: Number(row.rating ?? 4.5),
       stars: row.stars ?? 3,
       image: row.image ?? "",
-      amenities: asStringArray(row.amenities),
+      amenities: [],
       checkIn: row.check_in ?? undefined,
       checkOut: row.check_out ?? undefined,
       description: row.description ?? "",
-      roomDescription: row.room_description ?? undefined,
-      requirements: row.requirements ? String(row.requirements).split("|").filter(Boolean) : [],
-      gallery: asStringArray(row.gallery),
+      requirements: row.requirements ? String(row.requirements).split("|") : [],
+      gallery: (row.gallery as string[]) ?? [],
       ownerId: row.owner_id ?? undefined,
-      basePeople: row.base_people ?? undefined,
-      extraFeeRate: row.extra_fee_rate == null ? undefined : Number(row.extra_fee_rate),
-      rooms: mappedRooms.length ? mappedRooms : undefined,
     },
     idx,
   );
-  return hotel;
 }
 
 type FlightRow = {
@@ -211,34 +152,28 @@ const replaceArray = <T>(arr: T[], next: T[]) => {
 
 async function refreshTours() {
   const { data, error } = await supabase.from("tours").select("*").order("created_at", { ascending: false });
-  if (error) throw new Error(explainSupabaseError(error, "Không tải được tours từ Supabase"));
+  if (error) {
+    console.error("[adminStore] refreshTours", error);
+    return;
+  }
   replaceArray(tours, (data as TourRow[] | null)?.map(mapTour) ?? []);
   bump();
 }
 async function refreshHotels() {
   const { data, error } = await supabase.from("hotels").select("*").order("created_at", { ascending: false });
-  if (error) throw new Error(explainSupabaseError(error, "Không tải được khách sạn từ Supabase"));
-  const rows = (data ?? []) as unknown as HotelRow[];
-  const ids = rows.map((r) => r.id);
-  let roomRows: HotelRoomRow[] = [];
-  if (ids.length) {
-    const { data: roomData, error: roomError } = await supabase
-      .from("hotel_rooms")
-      .select("*")
-      .in("hotel_id", ids)
-      .order("created_at", { ascending: true });
-    if (roomError) throw new Error(explainSupabaseError(roomError, "Không tải được phòng khách sạn từ Supabase"));
-    roomRows = (roomData ?? []) as unknown as HotelRoomRow[];
+  if (error) {
+    console.error("[adminStore] refreshHotels", error);
+    return;
   }
-  replaceArray(
-    hotels,
-    rows.map((row, i) => mapHotel(row, i, roomRows.filter((r) => r.hotel_id === row.id))),
-  );
+  replaceArray(hotels, (data as HotelRow[] | null)?.map((row, i) => mapHotel(row, i)) ?? []);
   bump();
 }
 async function refreshFlights() {
   const { data, error } = await supabase.from("flights").select("*").order("created_at", { ascending: false });
-  if (error) throw new Error(explainSupabaseError(error, "Không tải được chuyến bay từ Supabase"));
+  if (error) {
+    console.error("[adminStore] refreshFlights", error);
+    return;
+  }
   replaceArray(flights, (data as FlightRow[] | null)?.map(mapFlight) ?? []);
   bump();
 }
@@ -246,9 +181,6 @@ async function refreshFlights() {
 export async function refreshFromDb() {
   await Promise.all([refreshTours(), refreshHotels(), refreshFlights()]);
 }
-export async function refreshToursFromDb() { await refreshTours(); }
-export async function refreshHotelsFromDb() { await refreshHotels(); }
-export async function refreshFlightsFromDb() { await refreshFlights(); }
 
 let initialized = false;
 let initPromise: Promise<void> | null = null;
@@ -267,7 +199,6 @@ const tourDbValues = (t: Omit<Tour, "id"> | Tour) => ({
   destination: t.destination,
   image: t.image,
   price: t.price,
-  old_price: t.oldPrice ?? null,
   days: t.days,
   nights: t.nights,
   rating: t.rating,
@@ -283,7 +214,12 @@ const tourDbValues = (t: Omit<Tour, "id"> | Tour) => ({
 });
 
 export async function addTour(t: Omit<Tour, "id">) {
-  await adminInsert({ data: { table: "tours", values: tourDbValues(t) } });
+  try {
+    await adminInsert({ data: { table: "tours", values: tourDbValues(t) } });
+  } catch (e) {
+    console.error("addTour DB error", e);
+    throw e;
+  }
   await refreshTours();
 }
 
@@ -293,7 +229,6 @@ export async function updateTour(id: string, patch: Partial<Tour>) {
   if (patch.destination !== undefined) dbPatch.destination = patch.destination;
   if (patch.image !== undefined) dbPatch.image = patch.image;
   if (patch.price !== undefined) dbPatch.price = patch.price;
-  if (patch.oldPrice !== undefined) dbPatch.old_price = patch.oldPrice ?? null;
   if (patch.days !== undefined) dbPatch.days = patch.days;
   if (patch.nights !== undefined) dbPatch.nights = patch.nights;
   if (patch.rating !== undefined) dbPatch.rating = patch.rating;
@@ -306,47 +241,57 @@ export async function updateTour(id: string, patch: Partial<Tour>) {
   if (patch.excluded !== undefined) dbPatch.excluded = patch.excluded;
   if (patch.gallery !== undefined) dbPatch.gallery = patch.gallery;
   if (patch.videoUrl !== undefined) dbPatch.video_url = patch.videoUrl ?? null;
-  if (Object.keys(dbPatch).length === 0) return;
-  await adminUpdate({ data: { table: "tours", id, values: dbPatch } });
+  try {
+    await adminUpdate({ data: { table: "tours", id, values: dbPatch } });
+  } catch (e) {
+    console.error("updateTour DB error", e);
+    throw e;
+  }
   await refreshTours();
 }
 
 export async function deleteTour(id: string) {
-  await adminDelete({ data: { table: "tours", id } });
+  try {
+    await adminDelete({ data: { table: "tours", id } });
+  } catch (e) {
+    console.error("deleteTour DB error", e);
+    throw e;
+  }
   await refreshTours();
 }
 
 // ---------- HOTELS CRUD ----------
-const hotelDbValues = (h: Omit<Hotel, "id"> | Hotel) => {
-  const hotelToSave = {
+export async function addHotel(h: Omit<Hotel, "id">) {
+  const hotelToSave: Omit<Hotel, "id"> = {
     ...h,
     description: h.description?.trim() || getHotelDescription(h as Hotel),
     amenities: h.amenities?.length ? h.amenities : ["Wifi", "Nhà hàng", "Lễ tân 24h"],
     requirements: h.requirements?.length ? h.requirements : undefined,
   };
-  return {
-    name: hotelToSave.name,
-    city: hotelToSave.city,
-    address: hotelToSave.address || hotelToSave.city,
-    price: hotelToSave.price,
-    rating: hotelToSave.rating,
-    stars: hotelToSave.stars,
-    image: hotelToSave.image,
-    description: hotelToSave.description,
-    room_description: hotelToSave.roomDescription ?? null,
-    check_in: hotelToSave.checkIn,
-    check_out: hotelToSave.checkOut,
-    requirements: hotelToSave.requirements?.join("|") ?? null,
-    amenities: hotelToSave.amenities ?? [],
-    gallery: hotelToSave.gallery ?? [],
-    owner_id: hotelToSave.ownerId ?? null,
-    base_people: hotelToSave.basePeople ?? 2,
-    extra_fee_rate: hotelToSave.extraFeeRate ?? 0.25,
-  };
-};
-
-export async function addHotel(h: Omit<Hotel, "id">) {
-  await adminInsert({ data: { table: "hotels", values: hotelDbValues(h) } });
+  try {
+    await adminInsert({
+      data: {
+        table: "hotels",
+        values: {
+          name: hotelToSave.name,
+          city: hotelToSave.city,
+          price: hotelToSave.price,
+          rating: hotelToSave.rating,
+          stars: hotelToSave.stars,
+          image: hotelToSave.image,
+          description: hotelToSave.description,
+          check_in: hotelToSave.checkIn,
+          check_out: hotelToSave.checkOut,
+          requirements: hotelToSave.requirements?.join("|"),
+          gallery: hotelToSave.gallery ?? [],
+          owner_id: hotelToSave.ownerId ?? null,
+        },
+      },
+    });
+  } catch (e) {
+    console.error("addHotel DB error", e);
+    throw e;
+  }
   await refreshHotels();
 }
 
@@ -354,48 +299,56 @@ export async function updateHotel(id: string, patch: Partial<Hotel>) {
   const dbPatch: Record<string, unknown> = {};
   if (patch.name !== undefined) dbPatch.name = patch.name;
   if (patch.city !== undefined) dbPatch.city = patch.city;
-  if (patch.address !== undefined) dbPatch.address = patch.address;
   if (patch.price !== undefined) dbPatch.price = patch.price;
   if (patch.rating !== undefined) dbPatch.rating = patch.rating;
   if (patch.stars !== undefined) dbPatch.stars = patch.stars;
   if (patch.image !== undefined) dbPatch.image = patch.image;
   if (patch.description !== undefined) dbPatch.description = patch.description;
-  if (patch.roomDescription !== undefined) dbPatch.room_description = patch.roomDescription;
   if (patch.checkIn !== undefined) dbPatch.check_in = patch.checkIn;
   if (patch.checkOut !== undefined) dbPatch.check_out = patch.checkOut;
-  if (patch.requirements !== undefined) dbPatch.requirements = patch.requirements?.join("|") ?? null;
-  if (patch.amenities !== undefined) dbPatch.amenities = patch.amenities;
+  if (patch.requirements !== undefined) dbPatch.requirements = patch.requirements?.join("|");
   if (patch.gallery !== undefined) dbPatch.gallery = patch.gallery;
-  if (patch.ownerId !== undefined) dbPatch.owner_id = patch.ownerId ?? null;
-  if (patch.basePeople !== undefined) dbPatch.base_people = patch.basePeople;
-  if (patch.extraFeeRate !== undefined) dbPatch.extra_fee_rate = patch.extraFeeRate;
-  if (Object.keys(dbPatch).length === 0) return;
-  await adminUpdate({ data: { table: "hotels", id, values: dbPatch } });
+  try {
+    await adminUpdate({ data: { table: "hotels", id, values: dbPatch } });
+  } catch (e) {
+    console.error("updateHotel DB error", e);
+    throw e;
+  }
   await refreshHotels();
 }
 
 export async function deleteHotel(id: string) {
-  await adminDelete({ data: { table: "hotels", id } });
+  try {
+    await adminDelete({ data: { table: "hotels", id } });
+  } catch (e) {
+    console.error("deleteHotel DB error", e);
+    throw e;
+  }
   await refreshHotels();
 }
 
 // ---------- FLIGHTS CRUD ----------
 export async function addFlight(f: Omit<Flight, "id">) {
-  await adminInsert({
-    data: {
-      table: "flights",
-      values: {
-        airline: f.airline,
-        from_code: f.from,
-        to_code: f.to,
-        depart: f.depart,
-        arrive: f.arrive,
-        duration: f.duration,
-        price: f.price,
-        baggage: f.baggage,
+  try {
+    await adminInsert({
+      data: {
+        table: "flights",
+        values: {
+          airline: f.airline,
+          from_code: f.from,
+          to_code: f.to,
+          depart: f.depart,
+          arrive: f.arrive,
+          duration: f.duration,
+          price: f.price,
+          baggage: f.baggage,
+        },
       },
-    },
-  });
+    });
+  } catch (e) {
+    console.error("addFlight DB error", e);
+    throw e;
+  }
   await refreshFlights();
 }
 
@@ -409,12 +362,21 @@ export async function updateFlight(id: string, patch: Partial<Flight>) {
   if (patch.duration !== undefined) dbPatch.duration = patch.duration;
   if (patch.price !== undefined) dbPatch.price = patch.price;
   if (patch.baggage !== undefined) dbPatch.baggage = patch.baggage;
-  if (Object.keys(dbPatch).length === 0) return;
-  await adminUpdate({ data: { table: "flights", id, values: dbPatch } });
+  try {
+    await adminUpdate({ data: { table: "flights", id, values: dbPatch } });
+  } catch (e) {
+    console.error("updateFlight DB error", e);
+    throw e;
+  }
   await refreshFlights();
 }
 
 export async function deleteFlight(id: string) {
-  await adminDelete({ data: { table: "flights", id } });
+  try {
+    await adminDelete({ data: { table: "flights", id } });
+  } catch (e) {
+    console.error("deleteFlight DB error", e);
+    throw e;
+  }
   await refreshFlights();
 }

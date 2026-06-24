@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
+import { sendPasswordResetEmail } from "@/lib/email/google-mail.functions";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -24,6 +25,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<{ email?: string; password?: string }>({});
   const [busy, setBusy] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,6 +44,22 @@ function LoginPage() {
     }
     toast.success("Đăng nhập thành công");
     navigate({ to: (redirect as "/") || "/" });
+  }
+
+  async function forgotPassword() {
+    if (!emailOk(email)) {
+      setErr((prev) => ({ ...prev, email: "Nhập email để nhận link đặt lại mật khẩu" }));
+      return;
+    }
+    setResetBusy(true);
+    try {
+      await sendPasswordResetEmail({ data: { email, origin: window.location.origin } });
+      toast.success("Nếu email tồn tại, WanderViet đã gửi link đặt lại mật khẩu");
+    } catch {
+      toast.success("Nếu email tồn tại, WanderViet đã gửi link đặt lại mật khẩu");
+    } finally {
+      setResetBusy(false);
+    }
   }
 
   return (
@@ -63,6 +81,16 @@ function LoginPage() {
               <Label className="mb-2 block">Mật khẩu</Label>
               <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
               {err.password && <p className="text-xs text-destructive mt-1">{err.password}</p>}
+            </div>
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={forgotPassword}
+                disabled={resetBusy}
+                className="text-sm font-medium text-primary hover:underline disabled:opacity-60"
+              >
+                {resetBusy ? "Đang gửi email..." : "Quên mật khẩu?"}
+              </button>
             </div>
             <Button type="submit" className="w-full" disabled={busy}>{busy ? "Đang xử lý..." : "Đăng nhập"}</Button>
           </form>

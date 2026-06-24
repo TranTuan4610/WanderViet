@@ -9,9 +9,8 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { formatVND } from "@/lib/mockData";
 import { supabase } from "@/integrations/supabase/client";
-import { sendTransactionalEmail } from "@/lib/email/send";
 import { useServerFn } from "@tanstack/react-start";
-import { notifyHotelOwnerOfBooking } from "@/lib/owner-notify.functions";
+
 import {
   confirmBookingPayment,
   createPendingBooking,
@@ -40,7 +39,7 @@ export type BookingFlowProps = {
   orderInfo: string;
   summary: ReactNode;
   step0: ReactNode;
-  bookingType: "tour" | "hotel" | "flight";
+  bookingType: "tour" | "hotel" | "flight" | "rental";
   refId: string;
   refTitle?: string;
   extraInfo?: Record<string, unknown>;
@@ -62,7 +61,6 @@ export function BookingFlow({
   guestCount = 1, validateStep0,
 }: BookingFlowProps) {
   const navigate = useNavigate();
-  const notifyOwner = useServerFn(notifyHotelOwnerOfBooking);
   const createBooking = useServerFn(createPendingBooking);
   const checkStatus = useServerFn(getBookingStatus);
   const confirmPayment = useServerFn(confirmBookingPayment);
@@ -182,6 +180,11 @@ export function BookingFlow({
     (async () => {
       try {
         const { data: auth } = await supabase.auth.getUser();
+        if (!auth.user?.id) {
+          toast.error("Vui lòng đăng nhập để hoàn tất đặt chỗ");
+          navigate({ to: "/login" });
+          return;
+        }
         const lead = guests[0];
         const res = await createBooking({
           data: {
@@ -190,7 +193,6 @@ export function BookingFlow({
             ref_title: refTitle ?? subtitle,
             total: finalTotal,
             payment_method: payment,
-            user_id: auth.user?.id ?? null,
             customer_info: {
               ...(extraInfo ?? {}),
               name: lead.name,
@@ -242,74 +244,31 @@ export function BookingFlow({
     return () => { cancelled = true; clearInterval(t); };
   }, [step, bookingId, qrPaid, checkStatus]);
 
-  // After payment is confirmed → send email, notify owner, advance to step 3.
+  // After payment is confirmed by the backend → only advance UI.
   const finalizedRef = useRef(false);
   useEffect(() => {
     if (!qrPaid || !bookingId || finalizedRef.current) return;
     finalizedRef.current = true;
-
-    const lead = guests[0];
-    const paymentLabel: Record<string, string> = {
-      qr: "Chuyển khoản QR - TP Bank",
-      momo: "Momo QR",
-    };
-    const extra = (extraInfo ?? {}) as Record<string, unknown>;
-    const scheduleParts: string[] = [];
-    if (extra.date) scheduleParts.push(`Ngày: ${extra.date}`);
-    if (extra.checkIn && extra.checkOut) scheduleParts.push(`${extra.checkIn} → ${extra.checkOut}`);
-    if (extra.people) scheduleParts.push(`${extra.people} khách`);
-    if (extra.pax) scheduleParts.push(`${extra.pax} hành khách`);
-    if (extra.rooms) scheduleParts.push(`${extra.rooms} phòng`);
-
-    sendTransactionalEmail({
-      templateName: "booking-confirmation",
-      recipientEmail: lead.email,
-      idempotencyKey: `booking-${bookingId}`,
-      bookingId,
-      templateData: {
-        customerName: lead.name,
-        bookingCode: bookingId.slice(0, 8).toUpperCase(),
-        bookingType,
-        refTitle: refTitle ?? subtitle,
-        total: formatVND(finalTotal),
-        paymentMethod: paymentLabel[payment] ?? payment,
-        bookingDate: new Date().toLocaleString("vi-VN"),
-        scheduleInfo: scheduleParts.join(" · "),
-      },
-    }).catch((e) => console.error("Email send failed", e));
-
-    if (bookingType === "hotel") {
-      notifyOwner({ data: { bookingId } }).catch((e) => console.error("Owner notify failed", e));
-    }
-
-    if (voucher) {
-      (async () => {
-        try {
-          const { data: cur } = await supabase
-            .from("vouchers")
-            .select("used")
-            .eq("id", voucher.id)
-            .maybeSingle();
-          const next = (cur?.used ?? 0) + 1;
-          await supabase.from("vouchers").update({ used: next }).eq("id", voucher.id);
-        } catch (e) {
-          console.error("Voucher used update failed", e);
-        }
-      })();
-    }
-
     toast.success("Đã ghi nhận thanh toán!");
     setStep(3);
-  }, [qrPaid, bookingId, bookingType, guests, refTitle, subtitle, total, finalTotal, voucher, payment, extraInfo, notifyOwner]);
+  }, [qrPaid, bookingId]);
 
-  function next() {
+  async function next() {
     if (step === 0) {
       const err = validateStep0?.();
       if (err) { toast.error(err); return; }
     }
-    if (step === 1 && !validateInfo()) {
-      toast.error("Vui lòng kiểm tra lại thông tin");
-      return;
+    if (step === 1) {
+      if (!validateInfo()) {
+        toast.error("Vui lòng kiểm tra lại thông tin");
+        return;
+      }
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user?.id) {
+        toast.error("Vui lòng đăng nhập để tiếp tục thanh toán");
+        navigate({ to: "/login" });
+        return;
+      }
     }
     if (step === 2) return; // advance handled by paid effect
     setStep((s) => Math.min(s + 1, steps.length - 1));
@@ -499,7 +458,7 @@ export function BookingFlow({
                   <p className="text-xs text-muted-foreground">ID đầy đủ: <span className="font-mono">{bookingId}</span></p>
                 </div>
               )}
-              <p className="text-muted-foreground mt-4">Email xác nhận đã gửi tới {guests[0]?.email}.</p>
+              <p className="text-muted-foreground mt-4">Hệ thống sẽ gửi email xác nhận tới {guests[0]?.email} sau khi xử lý thanh toán.</p>
               <div className="mt-6 flex gap-3 justify-center">
                 <Button variant="outline" onClick={() => navigate({ to: "/profile" })}>Đơn của tôi</Button>
                 <Button onClick={() => navigate({ to: "/" })}>Về trang chủ</Button>

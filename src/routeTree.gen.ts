@@ -10,12 +10,15 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as RentalsRouteImport } from './routes/rentals'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ListPropertyRouteImport } from './routes/list-property'
 import { Route as HotelsRouteImport } from './routes/hotels'
 import { Route as FlightsRouteImport } from './routes/flights'
+import { Route as AiChatRouteImport } from './routes/ai-chat'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ToursIndexRouteImport } from './routes/tours.index'
@@ -27,14 +30,16 @@ import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe
 import { Route as BookingTourIdRouteImport } from './routes/booking.$tourId'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminToursRouteImport } from './routes/admin.tours'
+import { Route as AdminRentalsRouteImport } from './routes/admin.rentals'
 import { Route as AdminPromosRouteImport } from './routes/admin.promos'
-import { Route as AdminContentRouteImport } from './routes/admin.content'
 import { Route as AdminHotelsRouteImport } from './routes/admin.hotels'
 import { Route as AdminFlightsRouteImport } from './routes/admin.flights'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as BookingRentalVehicleIdRouteImport } from './routes/booking.rental.$vehicleId'
 import { Route as BookingHotelHotelIdRouteImport } from './routes/booking.hotel.$hotelId'
 import { Route as BookingFlightFlightIdRouteImport } from './routes/booking.flight.$flightId'
+import { Route as ApiSepayWebhookRouteImport } from './routes/api/sepay/webhook'
 import { Route as ApiPublicPaymentCallbackRouteImport } from './routes/api/public/payment-callback'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -43,6 +48,16 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
   id: '/unsubscribe',
   path: '/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RentalsRoute = RentalsRouteImport.update({
+  id: '/rentals',
+  path: '/rentals',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegisterRoute = RegisterRouteImport.update({
@@ -73,6 +88,11 @@ const HotelsRoute = HotelsRouteImport.update({
 const FlightsRoute = FlightsRouteImport.update({
   id: '/flights',
   path: '/flights',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiChatRoute = AiChatRouteImport.update({
+  id: '/ai-chat',
+  path: '/ai-chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -130,14 +150,14 @@ const AdminToursRoute = AdminToursRouteImport.update({
   path: '/tours',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminRentalsRoute = AdminRentalsRouteImport.update({
+  id: '/rentals',
+  path: '/rentals',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPromosRoute = AdminPromosRouteImport.update({
   id: '/promos',
   path: '/promos',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminContentRoute = AdminContentRouteImport.update({
-  id: '/content',
-  path: '/content',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminHotelsRoute = AdminHotelsRouteImport.update({
@@ -160,6 +180,11 @@ const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
   path: '/lovable/email/suppression',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BookingRentalVehicleIdRoute = BookingRentalVehicleIdRouteImport.update({
+  id: '/booking/rental/$vehicleId',
+  path: '/booking/rental/$vehicleId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BookingHotelHotelIdRoute = BookingHotelHotelIdRouteImport.update({
   id: '/booking/hotel/$hotelId',
   path: '/booking/hotel/$hotelId',
@@ -168,6 +193,11 @@ const BookingHotelHotelIdRoute = BookingHotelHotelIdRouteImport.update({
 const BookingFlightFlightIdRoute = BookingFlightFlightIdRouteImport.update({
   id: '/booking/flight/$flightId',
   path: '/booking/flight/$flightId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSepayWebhookRoute = ApiSepayWebhookRouteImport.update({
+  id: '/api/sepay/webhook',
+  path: '/api/sepay/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicPaymentCallbackRoute =
@@ -198,18 +228,21 @@ const LovableEmailQueueProcessRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/ai-chat': typeof AiChatRoute
   '/flights': typeof FlightsRoute
   '/hotels': typeof HotelsRouteWithChildren
   '/list-property': typeof ListPropertyRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
+  '/rentals': typeof RentalsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/flights': typeof AdminFlightsRoute
   '/admin/hotels': typeof AdminHotelsRoute
   '/admin/promos': typeof AdminPromosRoute
-  '/admin/content': typeof AdminContentRoute
+  '/admin/rentals': typeof AdminRentalsRoute
   '/admin/tours': typeof AdminToursRoute
   '/admin/users': typeof AdminUsersRoute
   '/booking/$tourId': typeof BookingTourIdRoute
@@ -220,8 +253,10 @@ export interface FileRoutesByFullPath {
   '/hotels/': typeof HotelsIndexRoute
   '/tours/': typeof ToursIndexRoute
   '/api/public/payment-callback': typeof ApiPublicPaymentCallbackRoute
+  '/api/sepay/webhook': typeof ApiSepayWebhookRoute
   '/booking/flight/$flightId': typeof BookingFlightFlightIdRoute
   '/booking/hotel/$hotelId': typeof BookingHotelHotelIdRoute
+  '/booking/rental/$vehicleId': typeof BookingRentalVehicleIdRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -229,17 +264,20 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ai-chat': typeof AiChatRoute
   '/flights': typeof FlightsRoute
   '/list-property': typeof ListPropertyRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
+  '/rentals': typeof RentalsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/flights': typeof AdminFlightsRoute
   '/admin/hotels': typeof AdminHotelsRoute
   '/admin/promos': typeof AdminPromosRoute
-  '/admin/content': typeof AdminContentRoute
+  '/admin/rentals': typeof AdminRentalsRoute
   '/admin/tours': typeof AdminToursRoute
   '/admin/users': typeof AdminUsersRoute
   '/booking/$tourId': typeof BookingTourIdRoute
@@ -250,8 +288,10 @@ export interface FileRoutesByTo {
   '/hotels': typeof HotelsIndexRoute
   '/tours': typeof ToursIndexRoute
   '/api/public/payment-callback': typeof ApiPublicPaymentCallbackRoute
+  '/api/sepay/webhook': typeof ApiSepayWebhookRoute
   '/booking/flight/$flightId': typeof BookingFlightFlightIdRoute
   '/booking/hotel/$hotelId': typeof BookingHotelHotelIdRoute
+  '/booking/rental/$vehicleId': typeof BookingRentalVehicleIdRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -261,18 +301,21 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/ai-chat': typeof AiChatRoute
   '/flights': typeof FlightsRoute
   '/hotels': typeof HotelsRouteWithChildren
   '/list-property': typeof ListPropertyRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
+  '/rentals': typeof RentalsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/flights': typeof AdminFlightsRoute
   '/admin/hotels': typeof AdminHotelsRoute
   '/admin/promos': typeof AdminPromosRoute
-  '/admin/content': typeof AdminContentRoute
+  '/admin/rentals': typeof AdminRentalsRoute
   '/admin/tours': typeof AdminToursRoute
   '/admin/users': typeof AdminUsersRoute
   '/booking/$tourId': typeof BookingTourIdRoute
@@ -283,8 +326,10 @@ export interface FileRoutesById {
   '/hotels/': typeof HotelsIndexRoute
   '/tours/': typeof ToursIndexRoute
   '/api/public/payment-callback': typeof ApiPublicPaymentCallbackRoute
+  '/api/sepay/webhook': typeof ApiSepayWebhookRoute
   '/booking/flight/$flightId': typeof BookingFlightFlightIdRoute
   '/booking/hotel/$hotelId': typeof BookingHotelHotelIdRoute
+  '/booking/rental/$vehicleId': typeof BookingRentalVehicleIdRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -295,18 +340,21 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/ai-chat'
     | '/flights'
     | '/hotels'
     | '/list-property'
     | '/login'
     | '/profile'
     | '/register'
+    | '/rentals'
+    | '/reset-password'
     | '/unsubscribe'
     | '/admin/bookings'
     | '/admin/flights'
     | '/admin/hotels'
     | '/admin/promos'
-    | '/admin/content'
+    | '/admin/rentals'
     | '/admin/tours'
     | '/admin/users'
     | '/booking/$tourId'
@@ -317,8 +365,10 @@ export interface FileRouteTypes {
     | '/hotels/'
     | '/tours/'
     | '/api/public/payment-callback'
+    | '/api/sepay/webhook'
     | '/booking/flight/$flightId'
     | '/booking/hotel/$hotelId'
+    | '/booking/rental/$vehicleId'
     | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
@@ -326,17 +376,20 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/ai-chat'
     | '/flights'
     | '/list-property'
     | '/login'
     | '/profile'
     | '/register'
+    | '/rentals'
+    | '/reset-password'
     | '/unsubscribe'
     | '/admin/bookings'
     | '/admin/flights'
     | '/admin/hotels'
     | '/admin/promos'
-    | '/admin/content'
+    | '/admin/rentals'
     | '/admin/tours'
     | '/admin/users'
     | '/booking/$tourId'
@@ -347,8 +400,10 @@ export interface FileRouteTypes {
     | '/hotels'
     | '/tours'
     | '/api/public/payment-callback'
+    | '/api/sepay/webhook'
     | '/booking/flight/$flightId'
     | '/booking/hotel/$hotelId'
+    | '/booking/rental/$vehicleId'
     | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
@@ -357,18 +412,21 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/ai-chat'
     | '/flights'
     | '/hotels'
     | '/list-property'
     | '/login'
     | '/profile'
     | '/register'
+    | '/rentals'
+    | '/reset-password'
     | '/unsubscribe'
     | '/admin/bookings'
     | '/admin/flights'
     | '/admin/hotels'
     | '/admin/promos'
-    | '/admin/content'
+    | '/admin/rentals'
     | '/admin/tours'
     | '/admin/users'
     | '/booking/$tourId'
@@ -379,8 +437,10 @@ export interface FileRouteTypes {
     | '/hotels/'
     | '/tours/'
     | '/api/public/payment-callback'
+    | '/api/sepay/webhook'
     | '/booking/flight/$flightId'
     | '/booking/hotel/$hotelId'
+    | '/booking/rental/$vehicleId'
     | '/lovable/email/suppression'
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
@@ -390,20 +450,25 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  AiChatRoute: typeof AiChatRoute
   FlightsRoute: typeof FlightsRoute
   HotelsRoute: typeof HotelsRouteWithChildren
   ListPropertyRoute: typeof ListPropertyRoute
   LoginRoute: typeof LoginRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
+  RentalsRoute: typeof RentalsRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
   BookingTourIdRoute: typeof BookingTourIdRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   ToursTourIdRoute: typeof ToursTourIdRoute
   ToursIndexRoute: typeof ToursIndexRoute
   ApiPublicPaymentCallbackRoute: typeof ApiPublicPaymentCallbackRoute
+  ApiSepayWebhookRoute: typeof ApiSepayWebhookRoute
   BookingFlightFlightIdRoute: typeof BookingFlightFlightIdRoute
   BookingHotelHotelIdRoute: typeof BookingHotelHotelIdRoute
+  BookingRentalVehicleIdRoute: typeof BookingRentalVehicleIdRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -417,6 +482,20 @@ declare module '@tanstack/react-router' {
       path: '/unsubscribe'
       fullPath: '/unsubscribe'
       preLoaderRoute: typeof UnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rentals': {
+      id: '/rentals'
+      path: '/rentals'
+      fullPath: '/rentals'
+      preLoaderRoute: typeof RentalsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/register': {
@@ -459,6 +538,13 @@ declare module '@tanstack/react-router' {
       path: '/flights'
       fullPath: '/flights'
       preLoaderRoute: typeof FlightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-chat': {
+      id: '/ai-chat'
+      path: '/ai-chat'
+      fullPath: '/ai-chat'
+      preLoaderRoute: typeof AiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -538,18 +624,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminToursRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/rentals': {
+      id: '/admin/rentals'
+      path: '/rentals'
+      fullPath: '/admin/rentals'
+      preLoaderRoute: typeof AdminRentalsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/promos': {
       id: '/admin/promos'
       path: '/promos'
       fullPath: '/admin/promos'
       preLoaderRoute: typeof AdminPromosRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/content': {
-      id: '/admin/content'
-      path: '/content'
-      fullPath: '/admin/content'
-      preLoaderRoute: typeof AdminContentRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/hotels': {
@@ -580,6 +666,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailSuppressionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/booking/rental/$vehicleId': {
+      id: '/booking/rental/$vehicleId'
+      path: '/booking/rental/$vehicleId'
+      fullPath: '/booking/rental/$vehicleId'
+      preLoaderRoute: typeof BookingRentalVehicleIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/booking/hotel/$hotelId': {
       id: '/booking/hotel/$hotelId'
       path: '/booking/hotel/$hotelId'
@@ -592,6 +685,13 @@ declare module '@tanstack/react-router' {
       path: '/booking/flight/$flightId'
       fullPath: '/booking/flight/$flightId'
       preLoaderRoute: typeof BookingFlightFlightIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/sepay/webhook': {
+      id: '/api/sepay/webhook'
+      path: '/api/sepay/webhook'
+      fullPath: '/api/sepay/webhook'
+      preLoaderRoute: typeof ApiSepayWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/payment-callback': {
@@ -630,7 +730,7 @@ interface AdminRouteChildren {
   AdminFlightsRoute: typeof AdminFlightsRoute
   AdminHotelsRoute: typeof AdminHotelsRoute
   AdminPromosRoute: typeof AdminPromosRoute
-  AdminContentRoute: typeof AdminContentRoute
+  AdminRentalsRoute: typeof AdminRentalsRoute
   AdminToursRoute: typeof AdminToursRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -641,7 +741,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminFlightsRoute: AdminFlightsRoute,
   AdminHotelsRoute: AdminHotelsRoute,
   AdminPromosRoute: AdminPromosRoute,
-  AdminContentRoute: AdminContentRoute,
+  AdminRentalsRoute: AdminRentalsRoute,
   AdminToursRoute: AdminToursRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
@@ -665,20 +765,25 @@ const HotelsRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  AiChatRoute: AiChatRoute,
   FlightsRoute: FlightsRoute,
   HotelsRoute: HotelsRouteWithChildren,
   ListPropertyRoute: ListPropertyRoute,
   LoginRoute: LoginRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
+  RentalsRoute: RentalsRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   UnsubscribeRoute: UnsubscribeRoute,
   BookingTourIdRoute: BookingTourIdRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   ToursTourIdRoute: ToursTourIdRoute,
   ToursIndexRoute: ToursIndexRoute,
   ApiPublicPaymentCallbackRoute: ApiPublicPaymentCallbackRoute,
+  ApiSepayWebhookRoute: ApiSepayWebhookRoute,
   BookingFlightFlightIdRoute: BookingFlightFlightIdRoute,
   BookingHotelHotelIdRoute: BookingHotelHotelIdRoute,
+  BookingRentalVehicleIdRoute: BookingRentalVehicleIdRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,

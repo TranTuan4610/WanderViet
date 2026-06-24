@@ -147,11 +147,8 @@ export type HotelRoom = {
   basePeople: number;
   maxPeople: number;
   priceMultiplier: number;
-  basePrice?: number;
   available: number;
   description: string;
-  amenities?: string[];
-  ownerEmail?: string;
 };
 
 export type Hotel = {

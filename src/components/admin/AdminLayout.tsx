@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { CalendarCheck, FileText, LayoutDashboard, Lock, LogOut, Plane, Settings, Tag, Users, Hotel, MapPinned, PlaneTakeoff } from "lucide-react";
+import { CalendarCheck, Car, LayoutDashboard, Lock, LogOut, Plane, Settings, Tag, Users, Hotel, MapPinned, PlaneTakeoff } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,15 +14,33 @@ const items = [
   { to: "/admin/tours", label: "Tours", icon: MapPinned },
   { to: "/admin/hotels", label: "Khách sạn", icon: Hotel },
   { to: "/admin/flights", label: "Vé máy bay", icon: PlaneTakeoff },
+  { to: "/admin/rentals", label: "Thuê xe", icon: Car },
   { to: "/admin/bookings", label: "Booking", icon: CalendarCheck },
   { to: "/admin/promos", label: "Khuyến mãi", icon: Tag },
-  { to: "/admin/content", label: "Nội dung", icon: FileText },
-  
 ];
 
 function AdminPasswordGate() {
-  const { unlockAdmin } = useAuth();
+  const { user, loading, unlockAdmin } = useAuth();
   const [pw, setPw] = useState("");
+  const [busy, setBusy] = useState(false);
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-secondary/30 px-4 text-sm text-muted-foreground">Đang kiểm tra đăng nhập…</div>;
+  }
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-secondary/30 px-4">
+        <Card className="p-8 max-w-md w-full text-center">
+          <div className="h-14 w-14 mx-auto rounded-2xl bg-primary text-primary-foreground inline-flex items-center justify-center mb-3">
+            <Lock className="h-7 w-7" />
+          </div>
+          <h1 className="text-2xl font-bold font-heading">Khu vực quản trị</h1>
+          <p className="text-sm text-muted-foreground mt-2 mb-6">Vui lòng đăng nhập tài khoản quản trị trước, sau đó nhập mật khẩu admin.</p>
+          <Button className="w-full" asChild><Link to="/login" search={{ redirect: "/admin" }}>Đăng nhập quản trị</Link></Button>
+          <Button type="button" variant="outline" className="w-full mt-3" asChild><Link to="/">Về trang chủ</Link></Button>
+        </Card>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen flex items-center justify-center bg-secondary/30 px-4">
       <Card className="p-8 max-w-md w-full">
@@ -33,16 +51,23 @@ function AdminPasswordGate() {
           <h1 className="text-2xl font-bold font-heading">Khu vực quản trị</h1>
           <p className="text-sm text-muted-foreground mt-1">Vui lòng nhập mật khẩu để truy cập</p>
         </div>
-        <form onSubmit={(e) => {
+        <form onSubmit={async (e) => {
           e.preventDefault();
-          if (unlockAdmin(pw)) toast.success("Mở khoá thành công");
-          else { toast.error("Sai mật khẩu"); setPw(""); }
+          setBusy(true);
+          try {
+            if (await unlockAdmin(pw)) toast.success("Mở khoá thành công");
+            else { toast.error("Vui lòng đăng nhập và nhập đúng mật khẩu admin"); setPw(""); }
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : "Không thể mở khoá admin");
+          } finally {
+            setBusy(false);
+          }
         }} className="space-y-4">
           <div>
             <Label className="mb-2 block">Mật khẩu admin</Label>
             <Input type="password" autoFocus value={pw} onChange={(e) => setPw(e.target.value)} placeholder="••••••••" />
           </div>
-          <Button type="submit" className="w-full">Truy cập</Button>
+          <Button type="submit" className="w-full" disabled={busy}>{busy ? "Đang kiểm tra..." : "Truy cập"}</Button>
           <Button type="button" variant="outline" className="w-full" asChild>
             <Link to="/">Về trang chủ</Link>
           </Button>

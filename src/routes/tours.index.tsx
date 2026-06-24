@@ -21,6 +21,7 @@ import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAdminVersion } from "@/lib/adminStore";
 import { destinations, tours, type Tour } from "@/lib/mockData";
+import { useLanguage } from "@/lib/i18n";
 
 const searchSchema = z.object({ q: z.string().optional(), type: z.string().optional() });
 
@@ -30,21 +31,28 @@ export const Route = createFileRoute("/tours/")({
 });
 
 const tourTypes: Tour["type"][] = ["Biển", "Núi", "Văn hóa", "Thành phố"];
-const durationOptions = [
-  { label: "1-2 ngày", min: 1, max: 2 },
-  { label: "3-4 ngày", min: 3, max: 4 },
-  { label: "5-7 ngày", min: 5, max: 7 },
-  { label: "Trên 7 ngày", min: 8, max: 99 },
-];
-const departOptions = [
-  { value: "any", label: "Bất kỳ" },
-  { value: "this-week", label: "Tuần này" },
-  { value: "this-month", label: "Tháng này" },
-  { value: "next-month", label: "Tháng sau" },
-];
+const tourTypeKey: Record<string, string> = {
+  "Biển": "tours.typeBeach",
+  "Núi": "tours.typeMountain",
+  "Văn hóa": "tours.typeCulture",
+  "Thành phố": "tours.typeCity",
+};
 
 function ToursPage() {
   const adminVersion = useAdminVersion();
+  const { t } = useLanguage();
+  const durationOptions = [
+    { label: t("tours.dur12"), min: 1, max: 2 },
+    { label: t("tours.dur34"), min: 3, max: 4 },
+    { label: t("tours.dur57"), min: 5, max: 7 },
+    { label: t("tours.dur7plus"), min: 8, max: 99 },
+  ];
+  const departOptions = [
+    { value: "any", label: t("tours.departAny") },
+    { value: "this-week", label: t("tours.departThisWeek") },
+    { value: "this-month", label: t("tours.departThisMonth") },
+    { value: "next-month", label: t("tours.departNextMonth") },
+  ];
   const { q, type: initialType } = Route.useSearch();
   const maxTourPrice = Math.ceil(Math.max(10_000_000, ...tours.map((t) => t.price)) / 1_000_000) * 1_000_000;
   const [query, setQuery] = useState(q ?? "");
@@ -105,7 +113,7 @@ function ToursPage() {
   };
 
   const activeChips: { label: string; onClear: () => void }[] = [];
-  if (query) activeChips.push({ label: `Từ khóa: ${query}`, onClear: () => setQuery("") });
+  if (query) activeChips.push({ label: t("tours.keyword", { q: query }), onClear: () => setQuery("") });
   if (destination !== "all")
     activeChips.push({ label: destination, onClear: () => setDestination("all") });
   if (price[0] > 0 || price[1] !== Number.MAX_SAFE_INTEGER)
@@ -113,12 +121,12 @@ function ToursPage() {
       label: `${(price[0] / 1_000_000).toFixed(1)}tr - ${((price[1] === Number.MAX_SAFE_INTEGER ? maxTourPrice : price[1]) / 1_000_000).toFixed(1)}tr`,
       onClear: () => setPrice([0, Number.MAX_SAFE_INTEGER]),
     });
-  types.forEach((t) =>
-    activeChips.push({ label: t, onClear: () => setTypes(types.filter((x) => x !== t)) }),
+  types.forEach((tp) =>
+    activeChips.push({ label: t(tourTypeKey[tp] ?? tp), onClear: () => setTypes(types.filter((x) => x !== tp)) }),
   );
   stars.forEach((s) =>
     activeChips.push({
-      label: `${s} sao`,
+      label: t("tours.starsChip", { s }),
       onClear: () => setStars(stars.filter((x) => x !== s)),
     }),
   );
@@ -129,7 +137,7 @@ function ToursPage() {
     }),
   );
   if (minRating > 0)
-    activeChips.push({ label: `Từ ${minRating}★`, onClear: () => setMinRating(0) });
+    activeChips.push({ label: t("tours.fromRating", { r: minRating }), onClear: () => setMinRating(0) });
   if (depart !== "any") {
     const d = departOptions.find((o) => o.value === depart);
     if (d) activeChips.push({ label: d.label, onClear: () => setDepart("any") });
@@ -138,19 +146,19 @@ function ToursPage() {
   const FilterContent = (
     <div className="space-y-6">
       <div>
-        <Label className="mb-2 block">Tìm theo tên</Label>
+        <Label className="mb-2 block">{t("tours.searchByName")}</Label>
         <Input
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
             setPage(1);
           }}
-          placeholder="Phú Quốc, Đà Lạt..."
+          placeholder={t("tours.searchPlaceholder")}
         />
       </div>
 
       <div>
-        <Label className="mb-2 block">Địa điểm</Label>
+        <Label className="mb-2 block">{t("tours.location")}</Label>
         <Select
           value={destination}
           onValueChange={(v) => {
@@ -162,7 +170,7 @@ function ToursPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả địa điểm</SelectItem>
+            <SelectItem value="all">{t("tours.allLocations")}</SelectItem>
             {destinations.map((d) => (
               <SelectItem key={d.slug} value={d.name}>
                 {d.name}
@@ -173,7 +181,7 @@ function ToursPage() {
       </div>
 
       <div>
-        <Label className="mb-2 block">Thời gian khởi hành</Label>
+        <Label className="mb-2 block">{t("tours.departTime")}</Label>
         <Select
           value={depart}
           onValueChange={(v) => {
@@ -195,7 +203,7 @@ function ToursPage() {
       </div>
 
       <div>
-        <Label className="mb-2 block">Khoảng giá (VND)</Label>
+        <Label className="mb-2 block">{t("tours.priceRange")}</Label>
         <Slider
           min={0}
           max={maxTourPrice}
@@ -213,7 +221,7 @@ function ToursPage() {
       </div>
 
       <div>
-        <Label className="mb-2 block">Số ngày</Label>
+        <Label className="mb-2 block">{t("tours.daysLabel")}</Label>
         <div className="space-y-2">
           {durationOptions.map((d) => (
             <label key={d.label} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -233,25 +241,25 @@ function ToursPage() {
       </div>
 
       <div>
-        <Label className="mb-2 block">Loại tour</Label>
+        <Label className="mb-2 block">{t("tours.type")}</Label>
         <div className="space-y-2">
-          {tourTypes.map((t) => (
-            <label key={t} className="flex items-center gap-2 text-sm cursor-pointer">
+          {tourTypes.map((tp) => (
+            <label key={tp} className="flex items-center gap-2 text-sm cursor-pointer">
               <Checkbox
-                checked={types.includes(t)}
+                checked={types.includes(tp)}
                 onCheckedChange={(c) => {
-                  setTypes(c ? [...types, t] : types.filter((x) => x !== t));
+                  setTypes(c ? [...types, tp] : types.filter((x) => x !== tp));
                   setPage(1);
                 }}
               />
-              {t}
+              {t(tourTypeKey[tp] ?? tp)}
             </label>
           ))}
         </div>
       </div>
 
       <div>
-        <Label className="mb-2 block">Số sao khách sạn</Label>
+        <Label className="mb-2 block">{t("tours.hotelStars")}</Label>
         <div className="space-y-2">
           {[5, 4, 3].map((s) => (
             <label key={s} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -272,7 +280,7 @@ function ToursPage() {
       </div>
 
       <div>
-        <Label className="mb-2 block">Đánh giá tối thiểu</Label>
+        <Label className="mb-2 block">{t("tours.minRating")}</Label>
         <div className="flex gap-2 flex-wrap">
           {[0, 4.0, 4.5, 4.8].map((r) => (
             <Button
@@ -284,14 +292,14 @@ function ToursPage() {
                 setPage(1);
               }}
             >
-              {r === 0 ? "Tất cả" : `${r}★+`}
+              {r === 0 ? t("common.all") : `${r}★+`}
             </Button>
           ))}
         </div>
       </div>
 
       <Button variant="outline" className="w-full" onClick={resetAll}>
-        Đặt lại bộ lọc
+        {t("common.resetFilters")}
       </Button>
     </div>
   );
@@ -299,9 +307,9 @@ function ToursPage() {
   return (
     <SiteLayout>
       <div className="container mx-auto px-4 py-10">
-        <h1 className="text-3xl md:text-4xl font-bold font-heading">Tìm tour du lịch</h1>
+        <h1 className="text-3xl md:text-4xl font-bold font-heading">{t("tours.title")}</h1>
         <p className="text-muted-foreground mt-2">
-          Lọc theo giá, thời gian, số ngày, loại tour, số sao và đánh giá.
+          {t("tours.subtitle")}
         </p>
 
         <div className="grid lg:grid-cols-[300px_1fr] gap-8 mt-8">
@@ -309,7 +317,7 @@ function ToursPage() {
             <Card className="p-6 sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto">
               <div className="flex items-center gap-2 mb-4 font-semibold">
                 <Filter className="h-4 w-4" />
-                Bộ lọc
+                {t("tours.filter")}
               </div>
               {FilterContent}
             </Card>
@@ -318,14 +326,14 @@ function ToursPage() {
           <div>
             <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
               <div className="text-sm text-muted-foreground">
-                <span className="font-semibold text-foreground">{filtered.length}</span> tour phù hợp
+                {t("tours.resultCount", { count: filtered.length })}
               </div>
               <div className="flex items-center gap-2">
                 <Sheet>
                   <SheetTrigger asChild>
                     <Button variant="outline" size="sm" className="lg:hidden">
                       <SlidersHorizontal className="h-4 w-4 mr-1" />
-                      Lọc
+                      {t("tours.filterMobile")}
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="left" className="w-80 overflow-y-auto p-6">
@@ -337,12 +345,12 @@ function ToursPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="popular">Phổ biến nhất</SelectItem>
-                    <SelectItem value="price-asc">Giá thấp → cao</SelectItem>
-                    <SelectItem value="price-desc">Giá cao → thấp</SelectItem>
-                    <SelectItem value="rating">Đánh giá cao</SelectItem>
-                    <SelectItem value="duration-asc">Số ngày ít → nhiều</SelectItem>
-                    <SelectItem value="duration-desc">Số ngày nhiều → ít</SelectItem>
+                    <SelectItem value="popular">{t("tours.sortPopular")}</SelectItem>
+                    <SelectItem value="price-asc">{t("tours.sortPriceAsc")}</SelectItem>
+                    <SelectItem value="price-desc">{t("tours.sortPriceDesc")}</SelectItem>
+                    <SelectItem value="rating">{t("tours.sortRating")}</SelectItem>
+                    <SelectItem value="duration-asc">{t("tours.sortDurAsc")}</SelectItem>
+                    <SelectItem value="duration-desc">{t("tours.sortDurDesc")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -365,24 +373,24 @@ function ToursPage() {
                   className="text-xs text-primary hover:underline ml-1"
                   onClick={resetAll}
                 >
-                  Xóa tất cả
+                  {t("common.clearAll")}
                 </button>
               </div>
             )}
 
             <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
-              {pageItems.map((t) => (
-                <TourCard key={t.id} tour={t} />
+              {pageItems.map((tr) => (
+                <TourCard key={tr.id} tour={tr} />
               ))}
             </div>
 
             {filtered.length === 0 && (
               <Card className="p-12 text-center">
                 <p className="text-muted-foreground mb-4">
-                  Không có tour phù hợp với bộ lọc của bạn.
+                  {t("tours.empty")}
                 </p>
                 <Button variant="outline" onClick={resetAll}>
-                  Đặt lại bộ lọc
+                  {t("common.resetFilters")}
                 </Button>
               </Card>
             )}
@@ -395,7 +403,7 @@ function ToursPage() {
                   disabled={safePage === 1}
                   onClick={() => setPage(safePage - 1)}
                 >
-                  Trước
+                  {t("common.previous")}
                 </Button>
                 {Array.from({ length: totalPages }, (_, i) => (
                   <Button
@@ -413,7 +421,7 @@ function ToursPage() {
                   disabled={safePage === totalPages}
                   onClick={() => setPage(safePage + 1)}
                 >
-                  Sau
+                  {t("common.next")}
                 </Button>
               </div>
             )}

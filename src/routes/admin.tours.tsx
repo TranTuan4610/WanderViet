@@ -42,7 +42,7 @@ function AdminTours() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Tour | null>(null);
 
-  const handleSubmit = async (v: Record<string, unknown>) => {
+  const handleSubmit = (v: Record<string, unknown>) => {
     const payload = {
       title: String(v.title), destination: String(v.destination), image: String(v.image),
       price: Number(v.price), oldPrice: v.oldPrice ? Number(v.oldPrice) : undefined,
@@ -57,18 +57,8 @@ function AdminTours() {
       gallery: (Array.isArray(v.gallery) ? v.gallery : editing?.gallery ?? []) as string[],
       videoUrl: v.videoUrl ? String(v.videoUrl).trim() : undefined,
     };
-    try {
-      if (editing) {
-        await updateTour(editing.id, payload);
-        toast.success("Đã cập nhật tour và đồng bộ Supabase");
-      } else {
-        await addTour(payload as Omit<Tour, "id">);
-        toast.success("Đã thêm tour mới vào Supabase");
-      }
-    } catch (e) {
-      toast.error((e as Error).message || "Không lưu được tour");
-      throw e;
-    }
+    if (editing) { updateTour(editing.id, payload); toast.success("Đã cập nhật tour"); }
+    else { addTour(payload as Omit<Tour, "id">); toast.success("Đã thêm tour mới"); }
   };
 
   return (
@@ -97,14 +87,7 @@ function AdminTours() {
                 <TableCell>{t.seatsLeft}</TableCell>
                 <TableCell className="text-right space-x-1">
                   <Button variant="ghost" size="icon" onClick={() => { setEditing(t); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" onClick={async () => {
-                    try {
-                      await deleteTour(t.id);
-                      toast.success("Đã xóa tour khỏi Supabase");
-                    } catch (e) {
-                      toast.error((e as Error).message || "Không xóa được tour");
-                    }
-                  }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => { deleteTour(t.id); toast.success("Đã xóa"); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                 </TableCell>
               </TableRow>
             ))}

@@ -246,11 +246,7 @@ function ProfilePage() {
     e.preventDefault();
     if (!user?.id) return;
     setSavingProfile(true);
-    const trimmedName = name.trim();
-    const { error } = await supabase
-      .from("profiles")
-      .update({ name: trimmedName, full_name: trimmedName, phone: phone.trim() || null })
-      .eq("id", user.id);
+    const { error } = await supabase.from("profiles").update({ name: name.trim(), phone: phone.trim() || null }).eq("id", user.id);
     setSavingProfile(false);
     if (error) { toast.error("Không thể lưu"); return; }
     await refreshUser();

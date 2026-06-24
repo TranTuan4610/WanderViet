@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plane, Hotel as HotelIcon, MapPin, RefreshCw } from "lucide-react";
+import { Plane, Hotel as HotelIcon, MapPin, RefreshCw, Mail } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { formatVND } from "@/lib/mockData";
-import { adminListBookings, adminUpdateBookingStatus } from "@/lib/admin.functions";
+import { adminListBookings, adminUpdateBookingStatus, adminResendBookingEmails } from "@/lib/admin.functions";
 
 
 export const Route = createFileRoute("/admin/bookings")({ component: AdminBookings });
@@ -30,8 +30,6 @@ type BookingRow = {
   created_at: string;
   user_id: string | null;
   customer_info: Record<string, unknown> | null;
-  updated_at?: string | null;
-  paid_at?: string | null;
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -57,10 +55,11 @@ function AdminBookings() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const callList = useServerFn(adminListBookings);
   const callUpdate = useServerFn(adminUpdateBookingStatus);
+  const callResend = useServerFn(adminResendBookingEmails);
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -77,15 +76,25 @@ function AdminBookings() {
   useEffect(() => { load(); }, []);
 
   const updateStatus = async (id: string, status: string) => {
-    setUpdatingId(id);
     try {
       await callUpdate({ data: { id, status: status as "pending" | "paid" | "cancelled" | "refunded" } });
       toast.success(`Đã cập nhật trạng thái → ${status}`);
-      await load();
+      setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
     } catch (e) {
       toast.error("Cập nhật thất bại: " + (e as Error).message);
+    }
+  };
+
+  const resendEmails = async (id: string) => {
+    setResendingId(id);
+    try {
+      const res = await callResend({ data: { id } });
+      const sent = [res.customer?.sent && "khách", res.owner?.sent && "chủ phòng"].filter(Boolean).join(" & ") || "không có";
+      toast.success(`Đã gửi lại email (${sent})`);
+    } catch (e) {
+      toast.error("Gửi lại thất bại: " + (e as Error).message);
     } finally {
-      setUpdatingId(null);
+      setResendingId(null);
     }
   };
 
@@ -189,15 +198,29 @@ function AdminBookings() {
                   </TableCell>
                   <TableCell className="text-xs">{fmtDate(b.created_at)}</TableCell>
                   <TableCell className="text-right">
-                    <Select value={b.status} onValueChange={(v) => updateStatus(b.id, v)} disabled={updatingId === b.id}>
-                      <SelectTrigger className="w-36 h-8 text-xs ml-auto"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Chờ thanh toán</SelectItem>
-                        <SelectItem value="paid">Đã thanh toán</SelectItem>
-                        <SelectItem value="cancelled">Đã hủy</SelectItem>
-                        <SelectItem value="refunded">Đã hoàn tiền</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-1 justify-end">
+                      {b.status === "paid" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="Gửi lại email xác nhận"
+                          disabled={resendingId === b.id}
+                          onClick={() => resendEmails(b.id)}
+                        >
+                          <Mail className={`h-4 w-4 ${resendingId === b.id ? "animate-pulse" : ""}`} />
+                        </Button>
+                      )}
+                      <Select value={b.status} onValueChange={(v) => updateStatus(b.id, v)}>
+                        <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Chờ thanh toán</SelectItem>
+                          <SelectItem value="paid">Đã thanh toán</SelectItem>
+                          <SelectItem value="cancelled">Đã hủy</SelectItem>
+                          <SelectItem value="refunded">Đã hoàn tiền</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </TableCell>
                 </TableRow>
               );

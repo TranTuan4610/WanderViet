@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
-import { sendTransactionalEmail } from "@/lib/email/send";
+import { sendWelcomeSignupEmail } from "@/lib/email/google-mail.functions";
 
 export const Route = createFileRoute("/register")({
   component: RegisterPage,
@@ -43,12 +43,8 @@ function RegisterPage() {
       toast.error(error.includes("already") ? "Email đã được đăng ký" : error);
       return;
     }
-    sendTransactionalEmail({
-      templateName: "welcome-signup",
-      recipientEmail: form.email,
-      idempotencyKey: `welcome-${form.email.toLowerCase()}`,
-      templateData: { customerName: form.name, email: form.email },
-    }).catch((e: unknown) => console.error("Welcome email failed", e));
+    sendWelcomeSignupEmail({ data: { email: form.email, customerName: form.name } })
+      .catch((e: unknown) => console.error("Welcome email failed", e));
     toast.success(`Chào ${form.name}, đăng ký thành công! Email xác nhận đã được gửi.`);
     navigate({ to: (redirect as "/") || "/" });
   }

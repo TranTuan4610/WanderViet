@@ -9,11 +9,13 @@ import { Label } from "@/components/ui/label";
 import { useAdminVersion } from "@/lib/adminStore";
 import { getTodayDateInputValue } from "@/lib/dateGuards";
 import { formatVND, hotels } from "@/lib/mockData";
+import { useLanguage } from "@/lib/i18n";
 
 export const Route = createFileRoute("/hotels/")({ component: HotelsPage });
 
 function HotelsPage() {
   useAdminVersion();
+  const { t } = useLanguage();
   const [city, setCity] = useState("");
   const [focused, setFocused] = useState(false);
   const [checkIn, setCheckIn] = useState("");
@@ -41,19 +43,19 @@ function HotelsPage() {
   return (
     <SiteLayout>
       <div className="container mx-auto px-4 py-10">
-        <h1 className="text-3xl md:text-4xl font-bold font-heading">Đặt khách sạn</h1>
-        <p className="text-muted-foreground mt-2">Hơn 10,000+ khách sạn trên khắp Việt Nam</p>
+        <h1 className="text-3xl md:text-4xl font-bold font-heading">{t("hotels.title")}</h1>
+        <p className="text-muted-foreground mt-2">{t("hotels.subtitle")}</p>
 
         <Card className="p-6 mt-6">
           <div className="grid md:grid-cols-5 gap-3">
             <div className="relative">
-              <Label className="mb-2 block">Địa điểm</Label>
+              <Label className="mb-2 block">{t("hotels.location")}</Label>
               <Input
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 onFocus={() => setFocused(true)}
                 onBlur={() => setTimeout(() => setFocused(false), 150)}
-                placeholder="Nhập thành phố, tên khách sạn..."
+                placeholder={t("hotels.locationPlaceholder")}
               />
               {focused && suggestions.length > 0 && (
                 <div className="absolute z-20 mt-1 w-full rounded-md border bg-popover shadow-lg max-h-60 overflow-y-auto">
@@ -76,19 +78,19 @@ function HotelsPage() {
               )}
             </div>
             <div>
-              <Label className="mb-2 block">Nhận phòng</Label>
+              <Label className="mb-2 block">{t("hotels.checkIn")}</Label>
               <Input type="date" min={today} value={checkIn} onChange={(e) => setCheckIn(e.target.value)} />
             </div>
             <div>
-              <Label className="mb-2 block">Trả phòng</Label>
+              <Label className="mb-2 block">{t("hotels.checkOut")}</Label>
               <Input type="date" min={checkIn || today} value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
             </div>
             <div>
-              <Label className="mb-2 block">Số người</Label>
-              <Input type="number" min={1} step={1} defaultValue={2} placeholder="Số người" />
+              <Label className="mb-2 block">{t("hotels.guests")}</Label>
+              <Input type="number" min={1} step={1} defaultValue={2} placeholder={t("hotels.guests")} />
             </div>
             <div className="flex items-end">
-              <Button className="w-full">Tìm</Button>
+              <Button className="w-full">{t("hotels.search")}</Button>
             </div>
           </div>
         </Card>
@@ -134,18 +136,18 @@ function HotelsPage() {
                 </div>
                 <div className="flex items-end justify-between mt-4 pt-4 border-t">
                   <div>
-                    <p className="text-xs text-muted-foreground">Từ</p>
+                    <p className="text-xs text-muted-foreground">{t("common.from")}</p>
                     <p className="text-primary text-xl font-bold">{formatVND(h.price)}</p>
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" asChild>
                       <Link to="/hotels/$hotelId" params={{ hotelId: h.id }}>
-                        Xem
+                        {t("common.view")}
                       </Link>
                     </Button>
                     <Button size="sm" asChild>
                       <Link to="/booking/hotel/$hotelId" params={{ hotelId: h.id }}>
-                        Đặt
+                        {t("common.book")}
                       </Link>
                     </Button>
                   </div>

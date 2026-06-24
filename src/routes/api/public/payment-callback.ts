@@ -22,8 +22,6 @@
 
 import { createFileRoute } from "@tanstack/react-router";
 import { createHmac, timingSafeEqual } from "crypto";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { markBookingPaid } from "@/lib/booking.server";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -134,6 +132,7 @@ export const Route = createFileRoute("/api/public/payment-callback")({
         if (!bookingId) {
           const orderInfo = str("orderInfo") || str("content");
           if (orderInfo) {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
             const { data } = await supabaseAdmin
               .from("bookings")
               .select("id")
@@ -153,6 +152,7 @@ export const Route = createFileRoute("/api/public/payment-callback")({
         }
 
         // Verify the booking exists before flipping status.
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: existing } = await supabaseAdmin
           .from("bookings")
           .select("id")
@@ -165,8 +165,10 @@ export const Route = createFileRoute("/api/public/payment-callback")({
           );
         }
 
-        await markBookingPaid(bookingId);
-        return new Response(JSON.stringify({ ok: true, bookingId }), {
+        const { markBookingPaid } = await import("@/lib/booking.server");
+        const result = await markBookingPaid(bookingId);
+
+        return new Response(JSON.stringify({ ok: true, bookingId, result }), {
           status: 200,
           headers: { "Content-Type": "application/json", ...CORS },
         });

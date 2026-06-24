@@ -37,8 +37,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useAdminVersion } from "@/lib/adminStore";
-import { fetchHotelWithRooms } from "@/lib/hotelSupabase";
 import { buildGoogleMapsUrl, buildOsmEmbedUrl } from "@/lib/cityCoords";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useFavorites } from "@/lib/favorites";
 import { cn } from "@/lib/utils";
@@ -46,6 +46,7 @@ import {
   formatVND,
   getHotelDescription,
   hotels,
+  hydrateHotelDetails,
   type Hotel,
 } from "@/lib/mockData";
 import phuquoc from "@/assets/dest-phuquoc.jpg";
@@ -101,11 +102,11 @@ const faqs = (name: string) => [
 ];
 
 function HotelDetailPage() {
-  const adminVersion = useAdminVersion();
+  useAdminVersion();
   const { hotelId } = Route.useParams();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [dbHotel, setDbHotel] = useState<Hotel | null>(null);
-  const hotel = dbHotel ?? (hotels.find((h) => h.id === hotelId) as Hotel | undefined) ?? undefined;
+  const hotel = (hotels.find((h) => h.id === hotelId) as Hotel | undefined) ?? dbHotel ?? undefined;
   const { isFavorite, toggle } = useFavorites();
   const fav = hotel ? isFavorite("hotel", hotel.id) : false;
   const onToggleFav = () => {
@@ -114,21 +115,38 @@ function HotelDetailPage() {
   };
 
   useEffect(() => {
+    if (hotel || dbHotel?.id === hotelId) return;
     let active = true;
-    fetchHotelWithRooms(hotelId)
-      .then((mapped) => {
-        if (!active || !mapped) return;
-        const idx = hotels.findIndex((h) => h.id === mapped.id);
-        if (idx >= 0) hotels[idx] = mapped;
-        else hotels.unshift(mapped);
+    supabase
+      .from("hotels")
+      .select("*")
+      .eq("id", hotelId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!active || !data) return;
+        const mapped = hydrateHotelDetails({
+          id: data.id,
+          name: data.name,
+          address: data.city,
+          city: data.city,
+          price: Number(data.price),
+          rating: Number(data.rating ?? 4.5),
+          stars: data.stars ?? 3,
+          image: data.image ?? "",
+          amenities: [],
+          checkIn: data.check_in ?? undefined,
+          checkOut: data.check_out ?? undefined,
+          description: data.description ?? "",
+          requirements: data.requirements ? String(data.requirements).split("|") : [],
+          gallery: ((data as { gallery?: unknown }).gallery as string[]) ?? [],
+        });
+        if (!hotels.find((h) => h.id === mapped.id)) hotels.unshift(mapped);
         setDbHotel(mapped);
-      })
-      .catch((e) => {
-        console.error(e);
-        toast.error((e as Error).message || "Không tải được dữ liệu khách sạn mới nhất");
       });
-    return () => { active = false; };
-  }, [adminVersion, hotelId]);
+    return () => {
+      active = false;
+    };
+  }, [dbHotel?.id, hotel, hotelId]);
   if (!hotel) {
     return (
       <SiteLayout>
@@ -350,7 +368,7 @@ function HotelDetailPage() {
                       </thead>
                       <tbody>
                         {rooms.map((r) => {
-                          const price = Math.round(r.basePrice ?? hotel.price * r.priceMultiplier);
+                          const price = Math.round(hotel.price * r.priceMultiplier);
                           const tier = tierLabel[r.tier];
                           return (
                             <tr key={r.id} className="border-b align-top">
@@ -447,7 +465,7 @@ function HotelDetailPage() {
                   {/* Mobile cards */}
                   <div className="md:hidden space-y-3">
                     {rooms.map((r) => {
-                      const price = Math.round(r.basePrice ?? hotel.price * r.priceMultiplier);
+                      const price = Math.round(hotel.price * r.priceMultiplier);
                       const tier = tierLabel[r.tier];
                       return (
                         <div key={r.id} className="border rounded-xl p-3">

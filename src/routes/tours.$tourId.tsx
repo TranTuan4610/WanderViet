@@ -32,18 +32,18 @@ function normalizeScheduleItem(item: Tour["schedule"][number]) {
 }
 
 function TourDetailPage() {
-  const adminVersion = useAdminVersion();
+  useAdminVersion();
   const { tourId } = Route.useParams();
   const [dbTour, setDbTour] = useState<Tour | null>(null);
-  const tour = dbTour ?? (tours.find((t) => t.id === tourId) as Tour | undefined) ?? undefined;
+  const tour = (tours.find((t) => t.id === tourId) as Tour | undefined) ?? dbTour ?? undefined;
   useEffect(() => {
+    if (tour) return;
     let active = true;
     supabase.from("tours").select("*").eq("id", tourId).maybeSingle().then(({ data }) => {
       if (!active || !data) return;
-      const mapped: Tour = {
+      setDbTour({
         id: data.id, title: data.title, destination: data.destination, image: data.image ?? "",
-        price: Number(data.price), oldPrice: ((data as { old_price?: number | null }).old_price) ?? undefined,
-        days: data.days, nights: data.nights,
+        price: Number(data.price), days: data.days, nights: data.nights,
         rating: Number(data.rating ?? 4.5), reviews: 0, stars: (data as { stars?: number }).stars ?? 4,
         type: ((data as { type?: string }).type ?? "Biển") as Tour["type"],
         seatsLeft: data.seats_left ?? 10,
@@ -53,17 +53,10 @@ function TourDetailPage() {
         gallery: ((data as { gallery?: unknown }).gallery as string[]) ?? [],
         description: data.description ?? "",
         videoUrl: ((data as { video_url?: string | null }).video_url) ?? undefined,
-      };
-      const idx = tours.findIndex((t) => t.id === mapped.id);
-      if (idx >= 0) tours[idx] = mapped;
-      else tours.unshift(mapped);
-      setDbTour(mapped);
-    }).catch((e) => {
-      console.error(e);
-      toast.error((e as Error).message || "Không tải được tour mới nhất");
+      });
     });
     return () => { active = false; };
-  }, [adminVersion, tourId]);
+  }, [tour, tourId]);
   const { isFavorite, toggle } = useFavorites();
   const fav = tour ? isFavorite("tour", tour.id) : false;
   const onToggleFav = () => {

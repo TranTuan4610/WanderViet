@@ -4,8 +4,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatVND, type Tour } from "@/lib/mockData";
+import { useLanguage } from "@/lib/i18n";
 
 export function TourCard({ tour }: { tour: Tour }) {
+  const { t } = useLanguage();
   return (
     <Card className="overflow-hidden group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 pt-0 gap-0 pb-0">
       <Link to="/tours/$tourId" params={{ tourId: tour.id }} className="block relative overflow-hidden">
@@ -31,7 +33,7 @@ export function TourCard({ tour }: { tour: Tour }) {
           <span className="mx-1">·</span>
           <Clock className="h-3 w-3" /> {tour.days}N{tour.nights}Đ
           <span className="mx-1">·</span>
-          <Users className="h-3 w-3" /> Còn {tour.seatsLeft} chỗ
+          <Users className="h-3 w-3" /> {t("tourCard.seatsLeft", { n: tour.seatsLeft })}
         </div>
         <Link to="/tours/$tourId" params={{ tourId: tour.id }}>
           <h3 className="font-heading font-semibold text-lg leading-snug line-clamp-2 group-hover:text-primary transition-colors">
@@ -46,7 +48,7 @@ export function TourCard({ tour }: { tour: Tour }) {
             <div className="text-primary text-xl font-bold">{formatVND(tour.price)}</div>
           </div>
           <Button asChild size="sm">
-            <Link to="/tours/$tourId" params={{ tourId: tour.id }}>Xem</Link>
+            <Link to="/tours/$tourId" params={{ tourId: tour.id }}>{t("common.view")}</Link>
           </Button>
         </div>
       </div>

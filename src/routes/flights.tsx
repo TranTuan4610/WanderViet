@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { getTodayDateInputValue, isFlightDepartingMoreThanOneHourFromNow, isPastDateValue } from "@/lib/dateGuards";
 import { airports, flights, formatVND, type Flight } from "@/lib/mockData";
 import { useAdminVersion } from "@/lib/adminStore";
+import { useLanguage } from "@/lib/i18n";
 import { z } from "zod";
 
 export const Route = createFileRoute("/flights")({
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/flights")({
 
 function FlightsPage() {
   const adminVersion = useAdminVersion();
+  const { t } = useLanguage();
   const { combo } = Route.useSearch();
   const [tripType, setTripType] = useState<"oneway" | "round">("oneway");
   const [from, setFrom] = useState("HAN");
@@ -50,22 +52,22 @@ function FlightsPage() {
   return (
     <SiteLayout>
       <div className="container mx-auto px-4 py-10">
-        <h1 className="text-3xl md:text-4xl font-bold font-heading">Vé máy bay</h1>
-        <p className="text-muted-foreground mt-2">So sánh giá từ tất cả các hãng bay</p>
+        <h1 className="text-3xl md:text-4xl font-bold font-heading">{t("flights.title")}</h1>
+        <p className="text-muted-foreground mt-2">{t("flights.subtitle")}</p>
 
         {combo === "hotel" && (
           <Card className="p-4 mt-4 border-primary/40 bg-primary/5">
             <div className="flex items-start gap-3">
               <Briefcase className="h-5 w-5 text-primary mt-0.5" />
               <div className="flex-1">
-                <p className="font-semibold">Ưu đãi Combo Bay + Khách sạn — Tiết kiệm tới 30%</p>
+                <p className="font-semibold">{t("flights.comboTitle")}</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Đặt vé máy bay kèm khách sạn tại điểm đến hoặc điểm đi để hưởng giá combo ưu đãi.
+                  {t("flights.comboDesc")}
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
                     <input type="checkbox" checked={addHotel} onChange={(e) => setAddHotel(e.target.checked)} />
-                    Thêm khách sạn vào combo
+                    {t("flights.addHotel")}
                   </label>
                   {addHotel && (
                     <>
@@ -75,15 +77,15 @@ function FlightsPage() {
                         className="flex gap-4"
                       >
                         <Label className="flex items-center gap-1.5 cursor-pointer text-sm">
-                          <RadioGroupItem value="to" /> Tại điểm đến ({to})
+                          <RadioGroupItem value="to" /> {t("flights.atDest", { code: to })}
                         </Label>
                         <Label className="flex items-center gap-1.5 cursor-pointer text-sm">
-                          <RadioGroupItem value="from" /> Tại điểm đi ({from})
+                          <RadioGroupItem value="from" /> {t("flights.atOrigin", { code: from })}
                         </Label>
                       </RadioGroup>
                       <Button asChild size="sm" variant="outline">
                         <a href={`/hotels?city=${encodeURIComponent(hotelLocation === "to" ? to : from)}`}>
-                          Chọn khách sạn <ArrowRight className="h-3 w-3 ml-1" />
+                          {t("flights.chooseHotel")} <ArrowRight className="h-3 w-3 ml-1" />
                         </a>
                       </Button>
                     </>
@@ -101,10 +103,10 @@ function FlightsPage() {
             className="flex gap-6 mb-4"
           >
             <Label className="flex items-center gap-2 cursor-pointer">
-              <RadioGroupItem value="oneway" /> Một chiều
+              <RadioGroupItem value="oneway" /> {t("flights.oneway")}
             </Label>
             <Label className="flex items-center gap-2 cursor-pointer">
-              <RadioGroupItem value="round" /> Khứ hồi
+              <RadioGroupItem value="round" /> {t("flights.round")}
             </Label>
           </RadioGroup>
 
@@ -118,7 +120,7 @@ function FlightsPage() {
             className={`grid gap-3 ${tripType === "round" ? "md:grid-cols-6" : "md:grid-cols-5"}`}
           >
             <div>
-              <Label className="mb-2 block">Điểm đi</Label>
+              <Label className="mb-2 block">{t("flights.from")}</Label>
               <Select value={from} onValueChange={setFrom}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent className="max-h-72">
@@ -127,32 +129,32 @@ function FlightsPage() {
               </Select>
             </div>
             <div>
-              <Label className="mb-2 block">Điểm đến</Label>
+              <Label className="mb-2 block">{t("flights.to")}</Label>
               <Select value={to} onValueChange={setTo}>
-                <SelectTrigger><SelectValue placeholder="Chọn điểm đến" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("flights.toPlaceholder")} /></SelectTrigger>
                 <SelectContent className="max-h-72">
                   {reachableTo.length === 0 ? (
-                    <div className="px-2 py-2 text-sm text-muted-foreground">Không có chuyến từ điểm đi này</div>
+                    <div className="px-2 py-2 text-sm text-muted-foreground">{t("flights.noRoute")}</div>
                   ) : reachableTo.map((a) => <SelectItem key={a.code} value={a.code}>{a.city} ({a.code})</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="mb-2 block">Ngày đi</Label>
+              <Label className="mb-2 block">{t("flights.departDate")}</Label>
               <Input type="date" min={today} value={departDate} onChange={(e) => setDepartDate(e.target.value)} />
             </div>
             {tripType === "round" && (
               <div>
-                <Label className="mb-2 block">Ngày về</Label>
+                <Label className="mb-2 block">{t("flights.returnDate")}</Label>
                 <Input type="date" min={departDate || today} value={returnDate} onChange={(e) => setReturnDate(e.target.value)} />
               </div>
             )}
             <div>
-              <Label className="mb-2 block">Hãng bay</Label>
+              <Label className="mb-2 block">{t("flights.airline")}</Label>
               <Select value={airline} onValueChange={setAirline}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả</SelectItem>
+                  <SelectItem value="all">{t("flights.allAirlines")}</SelectItem>
                   <SelectItem value="Vietnam Airlines">Vietnam Airlines</SelectItem>
                   <SelectItem value="Vietjet Air">Vietjet Air</SelectItem>
                   <SelectItem value="Bamboo Airways">Bamboo Airways</SelectItem>
@@ -160,18 +162,18 @@ function FlightsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-end"><Button type="submit" className="w-full">Tìm vé</Button></div>
+            <div className="flex items-end"><Button type="submit" className="w-full">{t("flights.search")}</Button></div>
           </form>
 
           <div className="mt-3">
-            <Label className="mb-2 block">Số hành khách (tối thiểu 1)</Label>
+            <Label className="mb-2 block">{t("flights.paxLabel")}</Label>
             <Input type="number" min={1} className="max-w-[160px]" value={pax}
               onChange={(e) => setPax(Math.max(1, +e.target.value || 1))} />
           </div>
         </Card>
 
-        <FlightSegment title="Chuyến đi" list={outbound} pax={pax} />
-        {tripType === "round" && <FlightSegment title="Chuyến về" list={inbound} pax={pax} />}
+        <FlightSegment title={t("flights.outbound")} list={outbound} pax={pax} />
+        {tripType === "round" && <FlightSegment title={t("flights.inbound")} list={inbound} pax={pax} />}
       </div>
     </SiteLayout>
   );
@@ -187,11 +189,12 @@ function filter(list: Flight[], from: string, to: string, airline: string, selec
 }
 
 function FlightSegment({ title, list, pax }: { title: string; list: Flight[]; pax: number }) {
+  const { t } = useLanguage();
   return (
     <div className="mt-8">
-      <h2 className="font-heading font-bold text-xl mb-4">{title} <span className="text-sm font-normal text-muted-foreground">({list.length} chuyến)</span></h2>
+      <h2 className="font-heading font-bold text-xl mb-4">{title} <span className="text-sm font-normal text-muted-foreground">({t("flights.flightCount", { n: list.length })})</span></h2>
       {list.length === 0 ? (
-        <Card className="p-10 text-center text-muted-foreground">Không tìm thấy chuyến bay phù hợp.</Card>
+        <Card className="p-10 text-center text-muted-foreground">{t("flights.empty")}</Card>
       ) : (
         <div className="space-y-4">
           {list.map((f) => (
@@ -209,7 +212,7 @@ function FlightSegment({ title, list, pax }: { title: string; list: Flight[]; pa
                   <div className="flex-1 text-center">
                     <p className="text-xs text-muted-foreground">{f.duration}</p>
                     <div className="border-t border-dashed my-1 relative"><ArrowRight className="h-3 w-3 inline absolute -top-1.5 right-0 text-muted-foreground" /></div>
-                    <p className="text-xs text-muted-foreground">Bay thẳng</p>
+                    <p className="text-xs text-muted-foreground">{t("flights.nonstop")}</p>
                   </div>
                   <div className="text-center">
                     <p className="text-2xl font-bold font-heading">{f.arrive}</p>
@@ -219,9 +222,9 @@ function FlightSegment({ title, list, pax }: { title: string; list: Flight[]; pa
                 <div className="text-sm text-muted-foreground flex items-center gap-1"><Briefcase className="h-3 w-3" />{f.baggage}</div>
                 <div className="text-right">
                   <p className="text-primary text-xl font-bold">{formatVND(f.price * pax)}</p>
-                  <p className="text-xs text-muted-foreground">{pax} khách</p>
+                  <p className="text-xs text-muted-foreground">{t("flights.paxN", { n: pax })}</p>
                   <Button size="sm" className="mt-2" asChild>
-                    <Link to="/booking/flight/$flightId" params={{ flightId: f.id }}>Chọn</Link>
+                    <Link to="/booking/flight/$flightId" params={{ flightId: f.id }}>{t("flights.choose")}</Link>
                   </Button>
                 </div>
               </div>
