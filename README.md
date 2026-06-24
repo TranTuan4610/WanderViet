@@ -4,40 +4,40 @@ WanderViet là website du lịch hỗ trợ khách hàng tìm kiếm, đặt tou
 
 ## Demo trực tuyến
 
-Website dự kiến triển khai tại domain:
+Website triển khai tại domain:
 
 ```txt
-https://wandervietuth.shop
+https://tranvantuanwanderviet.shop
 ```
 
 Trang người dùng:
 
 ```txt
-https://wandervietuth.shop
+https://tranvantuanwanderviet.shop
 ```
 
 Trang quản trị:
 
 ```txt
-https://wandervietuth.shop/admin
+https://tranvantuanwanderviet.shop/admin
 ```
 
 ## Mục lục
 
-1. Tính năng chính
-2. Công nghệ sử dụng
-3. Yêu cầu hệ thống
-4. Cài đặt nhanh
-5. Biến môi trường
-6. Cơ sở dữ liệu
-7. Thanh toán SePay và QR ngân hàng
-8. AI Chat và widget liên hệ
-9. Đa ngôn ngữ, giao diện sáng/tối và hiệu ứng
-10. Các lệnh thường dùng
-11. Cấu trúc thư mục
-12. Tài khoản và quyền quản trị
-13. Triển khai production
-14. Ghi chú bảo trì
+1. [Tính năng chính](#1-tính-năng-chính)
+2. [Công nghệ sử dụng](#2-công-nghệ-sử-dụng)
+3. [Yêu cầu hệ thống](#3-yêu-cầu-hệ-thống)
+4. [Cài đặt nhanh](#4-cài-đặt-nhanh)
+5. [Biến môi trường](#5-biến-môi-trường)
+6. [Cơ sở dữ liệu](#6-cơ-sở-dữ-liệu)
+7. [Thanh toán SePay và QR ngân hàng](#7-thanh-toán-sepay-và-qr-ngân-hàng)
+8. [AI Chat và widget liên hệ](#8-ai-chat-và-widget-liên-hệ)
+9. [Đa ngôn ngữ, giao diện sáng/tối và hiệu ứng](#9-đa-ngôn-ngữ-giao-diện-sángtối-và-hiệu-ứng)
+10. [Các lệnh thường dùng](#10-các-lệnh-thường-dùng)
+11. [Cấu trúc thư mục](#11-cấu-trúc-thư-mục)
+12. [Tài khoản và quyền quản trị](#12-tài-khoản-và-quyền-quản-trị)
+13. [Triển khai production](#13-triển-khai-production)
+14. [Ghi chú bảo trì](#14-ghi-chú-bảo-trì)
 
 ---
 
@@ -218,7 +218,6 @@ Sonner
 Recharts
 date-fns
 Cloudflare Vite Plugin
-Lovable Vite TanStack Config
 ```
 
 Các thư viện giao diện và UI:
@@ -277,7 +276,7 @@ Supabase service role key cho server/admin
 Khuyến nghị cho production:
 
 ```txt
-Domain thật, ví dụ https://wandervietuth.shop
+Domain thật, ví dụ https://tranvantuanwanderviet.shop
 Supabase production project
 SePay webhook secret
 Cloudflare hoặc nền tảng deploy hỗ trợ Vite/TanStack Start
@@ -334,7 +333,7 @@ bun run dev
 Sau khi chạy local, mở website tại địa chỉ Vite hiển thị trong terminal, thường là:
 
 ```txt
-http://localhost:5173
+http://localhost:3000
 ```
 
 ---
@@ -357,7 +356,7 @@ SEPAY_BANK_NAME=TPBank
 SEPAY_BANK_ACCOUNT=0865665046
 SEPAY_BANK_OWNER=WANDERVIET TRAVEL
 
-PUBLIC_SITE_URL=https://wandervietuth.shop
+PUBLIC_SITE_URL=https://tranvantuanwanderviet.shop
 ```
 
 Ngoài ra, vì dự án dùng Supabase, cần bổ sung các biến sau khi chạy ngoài Lovable Cloud:
@@ -395,7 +394,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 
-PUBLIC_SITE_URL=https://wandervietuth.shop
+PUBLIC_SITE_URL=https://tranvantuanwanderviet.shop
 
 PAYMENT_CALLBACK_SECRET=your-long-random-secret
 SEPAY_WEBHOOK_SECRET=your-long-random-secret
@@ -638,7 +637,7 @@ SEPAY_WEBHOOK_SECRET=
 SEPAY_BANK_NAME=TPBank
 SEPAY_BANK_ACCOUNT=0865665046
 SEPAY_BANK_OWNER=WANDERVIET TRAVEL
-PUBLIC_SITE_URL=https://wandervietuth.shop
+PUBLIC_SITE_URL=https://tranvantuanwanderviet.shop
 ```
 
 ## 7.3. Lưu ý khi go-live
@@ -996,7 +995,7 @@ Checklist production:
 3. Cấu hình domain thật:
 
 ```txt
-https://wandervietuth.shop
+https://tranvantuanwanderviet.shop
 ```
 
 4. Cấu hình Supabase:
@@ -1115,37 +1114,37 @@ WanderViet là website du lịch hỗ trợ khách hàng tìm kiếm, đặt tou
 Website dự kiến triển khai tại domain:
 
 ```txt
-https://wandervietuth.shop
+https://tranvantuanwanderviet.shop
 ```
 
 Trang người dùng:
 
 ```txt
-https://wandervietuth.shop
+https://tranvantuanwanderviet.shop
 ```
 
 Trang quản trị:
 
 ```txt
-https://wandervietuth.shop/admin
+https://tranvantuanwanderviet.shop/admin
 ```
 
 ## Mục lục
 
-1. Tính năng chính
-2. Công nghệ sử dụng
-3. Yêu cầu hệ thống
-4. Cài đặt nhanh
-5. Biến môi trường
-6. Cơ sở dữ liệu
-7. Thanh toán SePay và QR ngân hàng
-8. AI Chat và widget liên hệ
-9. Đa ngôn ngữ, giao diện sáng/tối và hiệu ứng
-10. Các lệnh thường dùng
-11. Cấu trúc thư mục
-12. Tài khoản và quyền quản trị
-13. Triển khai production
-14. Ghi chú bảo trì
+1. [Tính năng chính](#1-tính-năng-chính)
+2. [Công nghệ sử dụng](#2-công-nghệ-sử-dụng)
+3. [Yêu cầu hệ thống](#3-yêu-cầu-hệ-thống)
+4. [Cài đặt nhanh](#4-cài-đặt-nhanh)
+5. [Biến môi trường](#5-biến-môi-trường)
+6. [Cơ sở dữ liệu](#6-cơ-sở-dữ-liệu)
+7. [Thanh toán SePay và QR ngân hàng](#7-thanh-toán-sepay-và-qr-ngân-hàng)
+8. [AI Chat và widget liên hệ](#8-ai-chat-và-widget-liên-hệ)
+9. [Đa ngôn ngữ, giao diện sáng/tối và hiệu ứng](#9-đa-ngôn-ngữ-giao-diện-sángtối-và-hiệu-ứng)
+10. [Các lệnh thường dùng](#10-các-lệnh-thường-dùng)
+11. [Cấu trúc thư mục](#11-cấu-trúc-thư-mục)
+12. [Tài khoản và quyền quản trị](#12-tài-khoản-và-quyền-quản-trị)
+13. [Triển khai production](#13-triển-khai-production)
+14. [Ghi chú bảo trì](#14-ghi-chú-bảo-trì)
 
 ---
 
@@ -1385,7 +1384,7 @@ Supabase service role key cho server/admin
 Khuyến nghị cho production:
 
 ```txt
-Domain thật, ví dụ https://wandervietuth.shop
+Domain thật, ví dụ https://tranvantuanwanderviet.shop
 Supabase production project
 SePay webhook secret
 Cloudflare hoặc nền tảng deploy hỗ trợ Vite/TanStack Start
@@ -1465,7 +1464,7 @@ SEPAY_BANK_NAME=TPBank
 SEPAY_BANK_ACCOUNT=0865665046
 SEPAY_BANK_OWNER=WANDERVIET TRAVEL
 
-PUBLIC_SITE_URL=https://wandervietuth.shop
+PUBLIC_SITE_URL=https://tranvantuanwanderviet.shop
 ```
 
 Ngoài ra, vì dự án dùng Supabase, cần bổ sung các biến sau khi chạy ngoài Lovable Cloud:
@@ -1503,7 +1502,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 
-PUBLIC_SITE_URL=https://wandervietuth.shop
+PUBLIC_SITE_URL=https://tranvantuanwanderviet.shop
 
 PAYMENT_CALLBACK_SECRET=your-long-random-secret
 SEPAY_WEBHOOK_SECRET=your-long-random-secret
@@ -1746,7 +1745,7 @@ SEPAY_WEBHOOK_SECRET=
 SEPAY_BANK_NAME=TPBank
 SEPAY_BANK_ACCOUNT=0865665046
 SEPAY_BANK_OWNER=WANDERVIET TRAVEL
-PUBLIC_SITE_URL=https://wandervietuth.shop
+PUBLIC_SITE_URL=https://tranvantuanwanderviet.shop
 ```
 
 ## 7.3. Lưu ý khi go-live
@@ -2104,7 +2103,7 @@ Checklist production:
 3. Cấu hình domain thật:
 
 ```txt
-https://wandervietuth.shop
+https://tranvantuanwanderviet.shop
 ```
 
 4. Cấu hình Supabase:
