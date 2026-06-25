@@ -6,21 +6,18 @@ WanderViet là website du lịch hỗ trợ khách hàng tìm kiếm, đặt tou
 
 Website triển khai tại domain:
 
-```txt
-https://tranvantuanwanderviet.shop
-```
+https://tranvantuanwanderviet.store
+
 
 Trang người dùng:
 
-```txt
-https://tranvantuanwanderviet.shop
-```
+https://tranvantuanwanderviet.store
 
 Trang quản trị:
 
-```txt
-https://tranvantuanwanderviet.shop/admin
-```
+
+https://tranvantuanwanderviet.store/admin
+
 
 ## Mục lục
 
